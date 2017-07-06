@@ -144,7 +144,7 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
         return None
 
     rca = cvalue_code.compute_95th_percentile(ext_clut)
-    gc.collect()
+    gc.collect()  # Free unused memory
 
     return volume_date, rca
 
@@ -216,7 +216,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="RCA step 1: creation of the clutter mask.")
     parser.add_argument('-i', '--input', dest='indir', default=None, type=str, help='Radar data input directory.')
     parser.add_argument('-c', '--clutter', dest='clutfile', default=None, type=str, help='Clutter mask file.')
-    parser.add_argument('-o', '--output', dest='output', default=os.path.abspath("../saved_mask/"), type=str, help='Output directory.')
+    parser.add_argument('-o', '--output', dest='output', default=os.path.abspath("../saved_rca/"), type=str, help='Output directory.')
     parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (total power) field name.')
     parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
     parser.add_argument('-j', '--cpu', dest='ncpu', default=16, type=int, help='Number of process')
