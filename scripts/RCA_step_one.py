@@ -19,6 +19,7 @@ handles the creation of the clutter mask.
 # Python standard library
 import os
 import hashlib
+import argparse
 import datetime
 import warnings
 import traceback
@@ -83,7 +84,7 @@ def plot_freq_map(outfilename_fig, rrange, freq):
     pl.ylabel("Distance from radar origin (m)")
     c0 = pl.colorbar()
     c0.set_label("Frequency (%)")
-    pl.savefig(outfilename_fig, dpi=250)
+    pl.savefig(outfilename_fig, dpi=150)
     pl.close()
 
     return None
@@ -245,12 +246,27 @@ if __name__ == '__main__':
     """
     Global variables definition
     """
-    DBZ_FIELD_NAME = "DBZ"
-    RHOHV_FIELD_NAME = "RHOHV"
-    INPUT_DIR = "/g/data2/rr5/vhl548/CPOL_level_1/2006/20060101/"
-    OUTPUT_DIR = os.path.abspath("../saved_mask/")
-    NCPU = 16
-    PLOT_FIG = True
+    welcome_msg = "RCA step 1: creation of the clutter mask."
+
+    parser = argparse.ArgumentParser(description=welcome_msg)
+    parser.add_argument('-i', '--input', dest='indir', default=None, type=str, help='Radar data input directory.')
+    parser.add_argument('-o', '--output', dest='output', default=os.path.abspath("../saved_mask/"), type=str, help='Output directory.')
+    parser.add_argument('-r', '--rhohv', dest='rhohv_name', default="RHOHV", type=str, help='Cross-correlation field name.')
+    parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (total power) field name.')
+    parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
+    parser.add_argument('-j', '--cpu', dest='ncpu', default=16, type=int, help='Number of process')
+
+    args = parser.parse_args()
+    INPUT_DIR = args.indir
+    OUTPUT_DIR = args.output
+    RHOHV_FIELD_NAME = args.rhohv_name
+    DBZ_FIELD_NAME = args.dbz_name
+    PLOT_FIG = args.l_fig
+    NCPU = args.ncpu
+
+    if not os.path.exists(OUTPUT_DIR):
+        os.mkdir(OUTPUT_DIR)
+        print("Creating output directory.", OUTPUT_DIR)
 
     warnings.simplefilter('ignore')
     main()

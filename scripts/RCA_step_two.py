@@ -58,7 +58,7 @@ def plot_figure(outfilename_fig, xdate, rca):
     pl.title("Monitoring of clutter reflectivity")
     pl.ylabel("CDF[clutter, 95%] (dBZ)")
     fig.autofmt_xdate()
-    pl.savefig(outfilename_fig, dpi=250)
+    pl.savefig(outfilename_fig, dpi=150)
     pl.close()
 
     return None
@@ -72,10 +72,10 @@ def write_ncfile(outfilename, xdate, rca, gnrl_meta):
     ===========
         outfilename: str
             Output file name saving mask.
-        clutter_r: np.array
-            Array of clutter range position.
-        clutter_azi: np.array
-            Array of clutter azimuthal position.
+        xdate: np.array
+            Time dimension.
+        rca: np.array
+            Ground clutter 95 percentile reflectivity value.
         gnrl_meta: dict
             Metadata dictionnary
     """
