@@ -51,7 +51,8 @@ def get_files(inpath, date=None):
             List of files found.
     '''
 
-    supported_extension = ['.nc', '.NC']
+    supported_extension = ['.nc', '.NC', '.cdf', '.hdf5', '.h5', '.HDF5',
+                           '.H5', '.lassen', '.PPI', '.UF']
     flist = []
 
     # Check date type
