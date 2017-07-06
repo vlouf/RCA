@@ -4,6 +4,32 @@ import datetime
 import numpy as np
 
 
+def welcome_message(INPUT_DIR, OUTPUT_DIR, RHOHV_FIELD_NAME, DBZ_FIELD_NAME, PLOT_FIG, NCPU):
+    '''
+    WELCOME_MESSAGE
+    Print a welcome message with a recap on the main global variables status
+    '''
+
+    msg = " "*38 + "RCA\n" + " "*22 + "Step 1: creation of the clutter mask"
+
+    print("#"*80)
+    print("\n" + msg + "\n", bold=True)
+    print("This program will look for ground radar data in " + INPUT_DIR)
+    print("This program will save the ground clutter mask in " + OUTPUT_DIR)
+    print("The raw reflectivity field name (total power) is assumed to be: " + DBZ_FIELD_NAME)
+    print("The cross-correlation field name (rhohv) is assumed to be: " + RHOHV_FIELD_NAME)
+    print("This program will run on %i process(es)." % (NCPU))
+    if PLOT_FIG:
+        print("Figure of the ground echoes frequency map will be saved in: " + OUTPUT_DIR)
+    else:
+        print("No figure will be plotted.")
+
+    print("#"*80)
+    print("\n\n")
+
+    return None
+
+
 def get_files(inpath, date=None):
     '''
     Find the list of files with the supported extension in the given

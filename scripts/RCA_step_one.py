@@ -36,7 +36,7 @@ import numpy as np
 
 # Custom modules.
 from processing_codes import cmask_code
-from processing_codes.raijin_tools import get_files
+from processing_codes import raijin_tools
 
 
 def plot_freq_map(outfilename_fig, rrange, freq):
@@ -176,7 +176,18 @@ def multproc_buffer_create_clut_map(infile):
 
 
 def main():
-    flist = get_files(INPUT_DIR)
+    """
+    Manager function:
+    - Generate list of input files.
+    - Generate names for output files (data and figure).
+    - Invoke multiprocessing and sends the file list to the manager of the
+      production functions to extract data.
+    - Collect production results and unpack them.
+    - Compute the clutter frequency map.
+    - Save the clutter frequency map.
+    - Plot figure.
+    """
+    flist = raijin_tools.get_files(INPUT_DIR)
     # Create the name of output files (figure and mask).
     outfilename_suffix = hashlib.md5(" ".join(flist).encode('utf-8')).hexdigest()[:16]
     # netCDF4 File
@@ -246,9 +257,8 @@ if __name__ == '__main__':
     """
     Global variables definition
     """
-    welcome_msg = "RCA step 1: creation of the clutter mask."
-
-    parser = argparse.ArgumentParser(description=welcome_msg)
+    # Argument parser.
+    parser = argparse.ArgumentParser(description="RCA step 1: creation of the clutter mask.")
     parser.add_argument('-i', '--input', dest='indir', default=None, type=str, help='Radar data input directory.')
     parser.add_argument('-o', '--output', dest='output', default=os.path.abspath("../saved_mask/"), type=str, help='Output directory.')
     parser.add_argument('-r', '--rhohv', dest='rhohv_name', default="RHOHV", type=str, help='Cross-correlation field name.')
@@ -256,6 +266,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
     parser.add_argument('-j', '--cpu', dest='ncpu', default=16, type=int, help='Number of process')
 
+    # Global variables initialization.
     args = parser.parse_args()
     INPUT_DIR = args.indir
     OUTPUT_DIR = args.output
@@ -264,9 +275,20 @@ if __name__ == '__main__':
     PLOT_FIG = args.l_fig
     NCPU = args.ncpu
 
+    # Print welcome message
+    raijin_tools.welcome_message(INPUT_DIR, OUTPUT_DIR, RHOHV_FIELD_NAME, DBZ_FIELD_NAME, PLOT_FIG, NCPU)
+
+    # Checking global variables.
+    if INPUT_DIR is None:
+        parser.error("Need to provide an input directory.")
+
+    if not os.path.isdir(INPUT_DIR):
+        parser.error("Invalid input directory.")
+
     if not os.path.exists(OUTPUT_DIR):
         os.mkdir(OUTPUT_DIR)
         print("Creating output directory.", OUTPUT_DIR)
 
-    warnings.simplefilter('ignore')
-    main()
+    # Starting business.
+    with warnings.catch_warnings():  # Kill off warnings.
+        main()
