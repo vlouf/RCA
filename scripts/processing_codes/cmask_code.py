@@ -63,11 +63,18 @@ def get_clutter_position(radar,
     # Get reflectivity and RHOHV
     try:
         total_power = radar.fields[dbz_name]['data'][rslice].filled(np.NaN)
-        cross_correlation_ratio = radar.fields[rhohv_name]['data'][rslice].filled(np.NaN)
     except KeyError:
-        print("Wrong RHOHV/DBZ field names provided. The field names in radar files are:")
+        print("Wrong DBZ field names provided. The field names in radar files are:")
         print(radar.fields.keys())
         raise KeyError("Wrong field name provided")
+
+    try:
+        cross_correlation_ratio = radar.fields[rhohv_name]['data'][rslice].filled(np.NaN)
+    except KeyError:
+        print("Wrong (or absent) RHOHV field names provided. Using statistics to compute ground clutter.")
+        cross_correlation_ratio = np.zeros_like(total_power)
+        if refl_thrld < 50:
+            refl_thrld = 50
 
     # Removing every echoes that are above RHOHV threshold, below DBZ threshold and above maximum range.
     clut = total_power

@@ -48,3 +48,13 @@ with:
 >- ```--dbz```: Name of the uncorrected reflectivity (total power) field (DBZ by default).
 >- ```--figure```: True/False if you want to plot the RCA time series (True by default).
 >- ```--cpu```: Number of process used for reading input radar files (16 by default).
+
+## Requirements:
+
+Mandatory:
+>- Python 3 (tested with Python 3.5 and 3.6)
+>- Py-ART
+>- Pandas
+
+Optionnal:
+>- trmm_rsl library (for lassen files support)
