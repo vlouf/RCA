@@ -290,5 +290,5 @@ if __name__ == '__main__':
     raijin_tools.welcome_message(INPUT_DIR, OUTPUT_DIR, RHOHV_FIELD_NAME, DBZ_FIELD_NAME, PLOT_FIG, NCPU)
 
     # Starting business.
-    with warnings.catch_warnings():  # Kill off warnings.
-        main()
+    warnings.simplefilter('ignore')
+    main()

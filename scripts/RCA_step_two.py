@@ -19,6 +19,8 @@ monitors the ground clutter reflectivity.
 # Python standard library
 import gc
 import os
+import sys
+import argparse
 import datetime
 import warnings
 import traceback
@@ -210,17 +212,46 @@ if __name__ == '__main__':
     """
     Global variables definition
     """
-    DBZ_FIELD_NAME = "DBZ"
-    INPUT_DIR = "/g/data2/rr5/vhl548/CPOL_level_1/2006/"
-    CLUTTER_MASK_FILE = "/home/548/vhl548/projects/RCA_codes/RCA/saved_mask/CLUTTER_map_31078ee0a0d1f023.nc"
-    OUTPUT_DIR = os.path.abspath("../saved_rca/")
-    NCPU = 24
-    PLOT_FIG = True
+    # Argument parser.
+    parser = argparse.ArgumentParser(description="RCA step 1: creation of the clutter mask.")
+    parser.add_argument('-i', '--input', dest='indir', default=None, type=str, help='Radar data input directory.')
+    parser.add_argument('-c', '--clutter', dest='clutfile', default=None, type=str, help='Clutter mask file.')
+    parser.add_argument('-o', '--output', dest='output', default=os.path.abspath("../saved_mask/"), type=str, help='Output directory.')
+    parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (total power) field name.')
+    parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
+    parser.add_argument('-j', '--cpu', dest='ncpu', default=16, type=int, help='Number of process')
+
+    # Global variables initialization.
+    args = parser.parse_args()
+    INPUT_DIR = args.indir
+    OUTPUT_DIR = args.output
+    CLUTTER_MASK_FILE = args.clutfile
+    DBZ_FIELD_NAME = args.dbz_name
+    PLOT_FIG = args.l_fig
+    NCPU = args.ncpu
+
+    # Checking global variables.
+    if INPUT_DIR is None:
+        parser.error("Need to provide an input directory.")
+
+    if not os.path.isdir(INPUT_DIR):
+        parser.error("Invalid input directory.")
+
+    if CLUTTER_MASK_FILE is None:
+        parser.error("A clutter mask file is required.")
+
+    if not os.path.exists(OUTPUT_DIR):
+        os.mkdir(OUTPUT_DIR)
+        print("Creating output directory.", OUTPUT_DIR)
 
     with netCDF4.Dataset(CLUTTER_MASK_FILE, "r") as ncid:
         CLUTTER_RANGE = ncid['range'][:]
         CLUTTER_AZIMUTH = ncid['azimuth'][:]
         INST_NAME = ncid.instrument_name
+
+    if CLUTTER_RANGE is None:
+        print("Clutter mask invalid.")
+        sys.exit()
 
     warnings.simplefilter('ignore')
     main()

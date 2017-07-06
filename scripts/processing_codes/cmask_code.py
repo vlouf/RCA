@@ -83,7 +83,7 @@ def compute_frequency_map(rrange,
                           range_list,
                           azi_list,
                           nb_files,
-                          freq_thrld=90):
+                          freq_thrld=80):
     """
     Compute the frequency map of non-meteorological echoes
 
