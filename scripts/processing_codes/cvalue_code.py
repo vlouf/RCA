@@ -64,8 +64,14 @@ def extract_clutter(radar, r_mask, th_mask, dbz_name='DBZ'):
     # Angle variation tolerance
     dazi = 0.5
 
-    # Get reflectivity and RHOHV
-    reflec = radar.fields[dbz_name]['data'][rslice].filled(np.NaN)
+    # Get reflectivity
+    try:
+        reflec = radar.fields[dbz_name]['data'][rslice].filled(np.NaN)
+    except KeyError:
+        print("Wrong RHOHV/DBZ field names provided. The field names in radar files are:")
+        print(radar.fields.keys())
+        raise KeyError("Wrong field name provided")
+
     reflec[reflec < 10] = np.NaN
     dr = r[1] - r[0]
     clut = []
