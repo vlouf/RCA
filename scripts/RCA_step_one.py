@@ -157,7 +157,7 @@ def multproc_buffer_create_clut_map(infile):
     try:
         radar = pyart.io.read(infile)
     except KeyError:
-        radar = pyart.aux_io.odim_h5(infile)
+        radar = pyart.aux_io.read_odim_h5(infile)
     except Exception:
         print("Could not read input file", os.path.basename(infile))
         return None
@@ -207,7 +207,7 @@ def main():
     try:
         radar = pyart.io.read(flist[0])
     except KeyError:
-        radar = pyart.aux_io.odim_h5(infile)
+        radar = pyart.aux_io.read_odim_h5(infile)
     rrange = radar.range['data'].astype(int)
     azimuth = radar.azimuth['data'][radar.get_slice(0)]
     nbfile = len(flist)

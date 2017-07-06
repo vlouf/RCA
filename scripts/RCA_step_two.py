@@ -131,7 +131,7 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
     try:
         radar = pyart.io.read(infile)
     except KeyError:
-        radar = pyart.aux_io.odim_h5(infile)
+        radar = pyart.aux_io.read_odim_h5(infile)
     except Exception:
         print("Could not read input file", os.path.basename(infile))
         return None
