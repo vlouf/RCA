@@ -34,7 +34,7 @@ with:
 >- ```--figure```: True/False if you want to plot the figure of the clutter frequency map (True by default).
 >- ```--cpu```: Number of process used for reading input radar files (16 by default).
 
-Only the `--input` argument is mandatory.
+Only the `--input` argument is required.
 
 This script will create a mask file (in output directory in netcdf format). This mask file is required for the second step.
 
@@ -53,11 +53,11 @@ with:
 >- ```--figure```: True/False if you want to plot the RCA time series (True by default).
 >- ```--cpu```: Number of process used for reading input radar files (16 by default).
 
-Only the `--input` and `--clutter` arguments are mandatory.
+Only the `--input` and `--clutter` arguments are required.
 
 ## Requirements:
 
-Mandatory:
+Required:
 >- [Python 3][3] (tested with Python 3.5 and 3.6, probably won't work with Python 2)
 >- Python ARM Radar Toolkit [(Py-ART) ][1]
 >- Python Data Analysis Library [(pandas)][2]
