@@ -6,13 +6,15 @@ This is a ground radar calibration technique using the monitoring of ground clut
 
 The radar equation is:
 
-$$ Z = 10 \log C + 20 \log r + 10 \log P_t$$
+```math
+Z = 10 \log C + 20 \log r + 10 \log P_t```
 
 where $Z$ (dBZ) is the reflectivity factor, $r$ is the range, $P_t$ is the total power returned by the target, and $C$ is the so-called radar constant. To calibrate radars, we need to determine the value of $C$.
 
 Ground echoes are generally caused by buildings, roads, or topographic structure near the radar. They are fixed targets $(\Delta r = 0)$, and their microphysics don't change over time $(\Delta P_t = 0)$, thus:
 
-$$ \Delta Z_c = \Delta C $$
+```math
+\Delta Z_c = \Delta C```
 
 So any change in the ground clutter reflectivity is due to a change in the radar calibration.
 
