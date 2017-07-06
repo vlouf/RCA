@@ -13,7 +13,7 @@ def welcome_message(INPUT_DIR, OUTPUT_DIR, RHOHV_FIELD_NAME, DBZ_FIELD_NAME, PLO
     msg = " "*38 + "RCA\n" + " "*22 + "Step 1: creation of the clutter mask"
 
     print("#"*80)
-    print("\n" + msg + "\n", bold=True)
+    print("\n" + msg + "\n")
     print("This program will look for ground radar data in " + INPUT_DIR)
     print("This program will save the ground clutter mask in " + OUTPUT_DIR)
     print("The raw reflectivity field name (total power) is assumed to be: " + DBZ_FIELD_NAME)

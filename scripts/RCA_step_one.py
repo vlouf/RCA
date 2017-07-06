@@ -275,9 +275,6 @@ if __name__ == '__main__':
     PLOT_FIG = args.l_fig
     NCPU = args.ncpu
 
-    # Print welcome message
-    raijin_tools.welcome_message(INPUT_DIR, OUTPUT_DIR, RHOHV_FIELD_NAME, DBZ_FIELD_NAME, PLOT_FIG, NCPU)
-
     # Checking global variables.
     if INPUT_DIR is None:
         parser.error("Need to provide an input directory.")
@@ -288,6 +285,9 @@ if __name__ == '__main__':
     if not os.path.exists(OUTPUT_DIR):
         os.mkdir(OUTPUT_DIR)
         print("Creating output directory.", OUTPUT_DIR)
+
+    # Print welcome message
+    raijin_tools.welcome_message(INPUT_DIR, OUTPUT_DIR, RHOHV_FIELD_NAME, DBZ_FIELD_NAME, PLOT_FIG, NCPU)
 
     # Starting business.
     with warnings.catch_warnings():  # Kill off warnings.
