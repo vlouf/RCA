@@ -137,7 +137,7 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
     volume_date = netCDF4.num2date(radar.time['data'][0], radar.time['units'])
 
     try:
-        ext_clut = cvalue_code.extract_clutter(radar, range_permanent_echoes, azi_permanent_echoes)
+        ext_clut = cvalue_code.extract_clutter(radar, range_permanent_echoes, azi_permanent_echoes, DBZ_FIELD_NAME)
     except Exception:
         print("Problem with this file:", os.path.basename(infile))
         traceback.print_exc()
