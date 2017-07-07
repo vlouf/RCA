@@ -213,7 +213,10 @@ def main():
     datestr = date.strftime("%Y%m%d")
 
     # Create the name of output files (figure and mask).
-    outfilename_suffix = radar.metadata["instrument_name"]
+    if INST_NAME is not None:
+        outfilename_suffix = INST_NAME
+    else:
+        outfilename_suffix = radar.metadata["instrument_name"]
 
     # netCDF4 File
     outfilename_save = "CLUTTER_map_{}_{}.nc".format(outfilename_suffix, datestr)
@@ -258,11 +261,8 @@ def main():
             continue
 
     # For BOM odim files.
-    if metakeys["instrument_name"] == '':
-        try:
-            metakeys["instrument_name"] = radar.metadata['source'].split(',')[1].split(':')[1]
-        except Exception:
-            pass
+    if INST_NAME is not None:
+        metadata_out["instrument_name"] = INST_NAME
 
     # Write mask to netcdf file.
     write_ncfile(outfilename_save, clutter_r, clutter_azi, metadata_out)
@@ -291,6 +291,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (total power) field name.')
     parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
     parser.add_argument('-j', '--cpu', dest='ncpu', default=16, type=int, help='Number of process')
+    parser.add_argument('-n', '--inst-name', dest='instname', default=None, type=str, help='Instrument name.')
 
     # Global variables initialization.
     args = parser.parse_args()
@@ -300,6 +301,7 @@ if __name__ == '__main__':
     DBZ_FIELD_NAME = args.dbz_name
     PLOT_FIG = args.l_fig
     NCPU = args.ncpu
+    INST_NAME = args.instname
 
     # Checking global variables.
     if INPUT_DIR is None:
