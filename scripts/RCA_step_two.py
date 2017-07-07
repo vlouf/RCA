@@ -128,10 +128,12 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
         rca: float
             CDF[95%] of ground clutter reflectivity
     """
+    file_extension = os.path.splitext(infile)[-1]
     try:
-        radar = pyart.io.read(infile)
-    except KeyError:
-        radar = pyart.aux_io.read_odim_h5(infile)
+        if file_extension == ".h5" or file_extension == ".H5":
+            radar = pyart.aux_io.read_odim_h5(infile)
+        else:
+            radar = pyart.io.read(infile)
     except Exception:
         print("Could not read input file", os.path.basename(infile))
         return None

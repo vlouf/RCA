@@ -154,10 +154,12 @@ def multproc_buffer_create_clut_map(infile):
         azi_clutt: np.array
             Azimuth position of non-meteorological echoes.
     """
+    file_extension = os.path.splitext(infile)[-1]
     try:
-        radar = pyart.io.read(infile)
-    except KeyError:
-        radar = pyart.aux_io.read_odim_h5(infile)
+        if file_extension == ".h5" or file_extension == ".H5":
+            radar = pyart.aux_io.read_odim_h5(infile)
+        else:
+            radar = pyart.io.read(infile)
     except Exception:
         print("Could not read input file", os.path.basename(infile))
         return None
@@ -190,32 +192,44 @@ def main():
     - Plot figure.
     """
     flist = raijin_tools.get_files(INPUT_DIR)
+    print("Found {} files.".format(len(flist)))
+    if len(flist) == 0:
+        print("No files found.")
+        return None
+
+    # Extract info of range and azimuth from one file
+    infile = flist[0]
+    file_extension = os.path.splitext(infile)[-1]
+    if file_extension == ".h5" or file_extension == ".H5":
+        radar = pyart.aux_io.read_odim_h5(infile)
+    else:
+        radar = pyart.io.read(infile)
+
+    rrange = radar.range['data'].astype(int)
+    azimuth = radar.azimuth['data'][radar.get_slice(0)]
+    nbfile = len(flist)
+
+    date = netCDF4.num2date(radar.time['data'][0], radar.time['units'])
+    datestr = date.strftime("%Y%m%d")
+
     # Create the name of output files (figure and mask).
-    outfilename_suffix = hashlib.md5(" ".join(flist).encode('utf-8')).hexdigest()[:16]
+    outfilename_suffix = radar.metadata["instrument_name"]
+
     # netCDF4 File
-    outfilename_save = "CLUTTER_map_{}.nc".format(outfilename_suffix)
+    outfilename_save = "CLUTTER_map_{}_{}.nc".format(outfilename_suffix, datestr)
     outfilename_save = os.path.join(OUTPUT_DIR, outfilename_save)
     # PNG figure.
-    outfilename_fig = "Frequency_map_{}.png".format(outfilename_suffix)
+    outfilename_fig = "Frequency_map_{}_{}.png".format(outfilename_suffix, datestr)
     outfilename_fig = os.path.join(OUTPUT_DIR, outfilename_fig)
 
     if os.path.isfile(outfilename_save):
         print("Output data file already exists. Doing nothing.")
         return None
 
-    # Extract info of range and azimuth from one file
-    try:
-        radar = pyart.io.read(flist[0])
-    except KeyError:
-        radar = pyart.aux_io.read_odim_h5(infile)
-    rrange = radar.range['data'].astype(int)
-    azimuth = radar.azimuth['data'][radar.get_slice(0)]
-    nbfile = len(flist)
-
-    if nbfile < 100:
-        print("Only {} file(s) found.".format(nbfile))
-        print("Need more data to generate a valid clutter mask. Doing nothing.")
-        return None
+    # if nbfile < 100:
+    #     print("Only {} file(s) found.".format(nbfile))
+    #     print("Need more data to generate a valid clutter mask. Doing nothing.")
+    #     return None
 
     # Start multiprocessing
     with Pool(NCPU) as pool:
@@ -234,7 +248,7 @@ def main():
     print("Clutter frequency map created.")
 
     # Some metadatas for the mask saved files.
-    metakeys = ["site_name", "instrument_name", "author", "institution", "instrument_type"]
+    metakeys = ["site_name", "instrument_name", "author", "institution", "instrument_type", "source"]
     metadata_out = dict()
     metadata_out['description'] = "Clutter mask"
     for mykey in metakeys:
@@ -242,6 +256,13 @@ def main():
             metadata_out[mykey] = radar.metadata[mykey]
         except KeyError:
             continue
+
+    # For BOM odim files.
+    if metakeys["instrument_name"] == '':
+        try:
+            metakeys["instrument_name"] = radar.metadata['source'].split(',')[1].split(':')[1]
+        except Exception:
+            pass
 
     # Write mask to netcdf file.
     write_ncfile(outfilename_save, clutter_r, clutter_azi, metadata_out)
