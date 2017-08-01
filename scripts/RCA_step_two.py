@@ -101,7 +101,7 @@ def write_ncfile(outfilename, xdate, rca, gnrl_meta):
 
         # Set units.
         ncr.units = time_units
-        nca.units = "degrees"
+        nca.units = "dBZ"
 
         # Set main metadata
         for mykey in gnrl_meta.keys():

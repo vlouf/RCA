@@ -43,7 +43,7 @@ This script will create a mask file (in output directory in netcdf format). This
 This step will use the mask from step 1 to extract the ground clutter reflectivity and compute the RCA value.
 Run (inside script directory) this line:
 
-``` python RCA_step_two.py --input X --output X --rhohv X --dbz X --figure X --cpu X```
+``` python RCA_step_two.py --input X --output X --clutter X --dbz X --figure X --cpu X```
 
 with:
 >- ```--input```: Input directory for radar data (it can be an entire season).
@@ -61,13 +61,14 @@ Required:
 >- [Python 3][3] (tested with Python 3.5 and 3.6, probably won't work with Python 2)
 >- Python ARM Radar Toolkit [(Py-ART) ][1]
 >- Python Data Analysis Library [(pandas)][2]
+>- numba
 
 Optionnal:
 >- trmm_rsl library (for lassen files support)
 
 The easiest way is to use [miniconda][3] to install the required python packages. Once miniconda is installed, type:
 
-```conda install -c conda-forge arm_pyart trmm_rsl pandas```
+```conda install -c conda-forge arm_pyart trmm_rsl pandas numba```
 
 This will install all required dependencies.
 
