@@ -54,7 +54,7 @@ def plot_figure(outfilename_fig, xdate, rca):
             RCA value.
     """
     fig = pl.figure()
-    pl.plot(xdate, rca)
+    pl.plot(xdate, rca, '+')
     pl.plot([xdate.min(), xdate.max()], [rca.mean(), rca.mean()], 'r--')
     pl.xlim([xdate.min(), xdate.max()])
     pl.title("Monitoring of clutter reflectivity")

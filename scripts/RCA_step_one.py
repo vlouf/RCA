@@ -180,7 +180,7 @@ def multproc_buffer_create_clut_map(infile):
         r_clutt, azi_clutt = cmask_code.get_clutter_position(radar,
                                                              dbz_name=DBZ_FIELD_NAME,
                                                              rhohv_name=RHOHV_FIELD_NAME,
-                                                             refl_thrld=45,
+                                                             refl_thrld=REFL_THRLD,
                                                              rhohv_thrld=0.6,
                                                              maxrange=10e3)
     except Exception:
@@ -288,7 +288,7 @@ def main():
         azi_tot = np.append(azi_tot, azislice)
 
     # Compute frequency map
-    clutter_r, clutter_azi, freq = cmask_code.compute_frequency_map(rrange, azimuth, range_tot, azi_tot, nbfile)
+    clutter_r, clutter_azi, freq = cmask_code.compute_frequency_map(rrange, azimuth, range_tot, azi_tot, nbfile, freq_thrld=FREQ_THRLD)
     print("Clutter frequency map created.")
 
     # Some metadatas for the mask saved files.
@@ -328,13 +328,15 @@ if __name__ == '__main__':
     """
     # Argument parser.
     parser = argparse.ArgumentParser(description="RCA step 1: creation of the clutter mask.")
-    parser.add_argument('-i', '--input', dest='indir', default=None, type=str, help='Radar data input directory.')
+    parser.add_argument('-i', '--input', dest='indir', default=None, type=str, help='Radar data input directory.', required=True)
     parser.add_argument('-o', '--output', dest='output', default=os.path.abspath("../saved_mask/"), type=str, help='Output directory.')
     parser.add_argument('-r', '--rhohv', dest='rhohv_name', default="RHOHV", type=str, help='Cross-correlation field name.')
     parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (total power) field name.')
     parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
     parser.add_argument('-j', '--cpu', dest='ncpu', default=8, type=int, help='Number of process')
     parser.add_argument('-n', '--inst-name', dest='instname', default=None, type=str, help='Instrument name.')
+    parser.add_argument('-t', '--refl-trhld', dest='refl_trhld', default=45, type=float, help='Reflectivity threshold.')
+    parser.add_argument('-p', '--freq-trhld', dest='freq_trhld', default=80, type=float, help='Frequency threshold.')
 
     # Global variables initialization.
     args = parser.parse_args()
@@ -345,6 +347,8 @@ if __name__ == '__main__':
     PLOT_FIG = args.l_fig
     NCPU = args.ncpu
     INST_NAME = args.instname
+    REFL_THRLD = args.refl_trhld
+    FREQ_THRLD = args.freq_trhld
 
     # Checking global variables.
     if INPUT_DIR is None:
