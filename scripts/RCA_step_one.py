@@ -18,6 +18,8 @@ handles the creation of the clutter mask.
 """
 # Python standard library
 import os
+import time
+import signal
 import hashlib
 import argparse
 import datetime
@@ -31,12 +33,21 @@ import matplotlib
 matplotlib.use('Agg')  # <- Reason why matplotlib is imported first.
 import matplotlib.pyplot as pl
 import pyart
+import crayons
 import netCDF4
 import numpy as np
 
 # Custom modules.
 from processing_codes import cmask_code
 from processing_codes import raijin_tools
+
+
+class TimeoutException(Exception):   # Custom exception class
+    pass
+
+
+def timeout_handler(signum, frame):   # Custom signal handler
+    raise TimeoutException
 
 
 def plot_freq_map(outfilename_fig, rrange, freq):
@@ -165,6 +176,7 @@ def multproc_buffer_create_clut_map(infile):
         return None
 
     try:
+        print(crayons.green("{} read.".format(infile)))
         r_clutt, azi_clutt = cmask_code.get_clutter_position(radar,
                                                              dbz_name=DBZ_FIELD_NAME,
                                                              rhohv_name=RHOHV_FIELD_NAME,
@@ -179,6 +191,34 @@ def multproc_buffer_create_clut_map(infile):
     return r_clutt, azi_clutt
 
 
+def fun_coach_timing(infile):
+    """
+    Buffer function that will chronometer time and kill if process takes too
+    long. It allows to not be stucked in a neverending process.
+
+    Parameters:
+    ===========
+        Same as child function.
+
+    Returns:
+    ========
+        Same as child function.
+    """
+    signal.signal(signal.SIGALRM, timeout_handler)
+
+    # Read radar file
+    signal.alarm(30)  # If it takes more than 30 seconds, kill job and continue
+    try:
+        rslt = multproc_buffer_create_clut_map(infile)
+    except TimeoutException:
+        print(crayons.red("TOOO MUCH TIME TRYING TO READ " + infile))
+        return None
+    else:
+        signal.alarm(0)
+
+    return rslt
+
+
 def main():
     """
     Manager function:
@@ -191,7 +231,8 @@ def main():
     - Save the clutter frequency map.
     - Plot figure.
     """
-    flist = raijin_tools.get_files(INPUT_DIR)
+    sttime = time.time()  # tick
+    flist = sorted(raijin_tools.get_files(INPUT_DIR))
     print("Found {} files.".format(len(flist)))
     if len(flist) == 0:
         print("No files found.")
@@ -236,7 +277,7 @@ def main():
 
     # Start multiprocessing
     with Pool(NCPU) as pool:
-        rslt = pool.map(multproc_buffer_create_clut_map, flist)
+        rslt = pool.map(fun_coach_timing, flist)
 
     print("Non-meteorological echoes extracted.")
     # Unpack multiprocessing rslt.
@@ -276,6 +317,8 @@ def main():
             traceback.print_exc()
             pass
 
+    print(crayons.yellow("Process took {}s.".format(time.time() - sttime)))
+
     return None
 
 
@@ -290,7 +333,7 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--rhohv', dest='rhohv_name', default="RHOHV", type=str, help='Cross-correlation field name.')
     parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (total power) field name.')
     parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
-    parser.add_argument('-j', '--cpu', dest='ncpu', default=16, type=int, help='Number of process')
+    parser.add_argument('-j', '--cpu', dest='ncpu', default=8, type=int, help='Number of process')
     parser.add_argument('-n', '--inst-name', dest='instname', default=None, type=str, help='Instrument name.')
 
     # Global variables initialization.
