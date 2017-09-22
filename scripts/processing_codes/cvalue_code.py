@@ -36,7 +36,7 @@ def compute_95th_percentile(the_data):
     return to_return
 
 
-def extract_clutter(radar, r_mask, th_mask, dbz_name='DBZ', zdr_name=None):
+def extract_clutter(r, azi, r_mask, th_mask, reflec, zdr):
     """
     Extract reflectivity data that has the same (r, azi) as the clutter mask.
 
@@ -56,35 +56,11 @@ def extract_clutter(radar, r_mask, th_mask, dbz_name='DBZ', zdr_name=None):
         clut: numpy.array(float)
             Extracted clutter reflectivity.
     """
-    # Extract first elevation only
-    rslice = radar.get_slice(0)
-    # Extract range/azimuth
-    r = radar.range['data'].astype(int)
-    azi = radar.azimuth['data'][rslice]
+    reflec[reflec < 10] = np.NaN
+    dr = r[1] - r[0]
     # Angle variation tolerance
     dazi = 0.5
 
-    # Get reflectivity
-    try:
-        reflec = radar.fields[dbz_name]['data'][rslice].filled(np.NaN)
-    except KeyError:
-        print("Wrong RHOHV/DBZ field names provided. The field names in radar files are:")
-        print(radar.fields.keys())
-        raise KeyError("Wrong field name provided")
-
-    # Get reflectivity
-    try:
-        if zdr_name is not None:
-            zdr = radar.fields[zdr_name]['data'][rslice].filled(np.NaN)
-        else:
-            pass
-    except KeyError:
-        print("Wrong RHOHV/DBZ field names provided. The field names in radar files are:")
-        print(radar.fields.keys())
-        raise KeyError("Wrong field name provided")
-
-    reflec[reflec < 10] = np.NaN
-    dr = r[1] - r[0]
     clut = np.array([])
     clut_zdr = np.array([])
 
@@ -110,7 +86,7 @@ def extract_clutter(radar, r_mask, th_mask, dbz_name='DBZ', zdr_name=None):
             print("Could not apply clutter mask.")
             traceback.print_exc()
 
-        if zdr_name is not None:
+        if zdr is not None:
             try:
                 rca_zdr = zdr[ttmp, rtmp]
                 clut_zdr = np.append(clut_zdr, rca_zdr)

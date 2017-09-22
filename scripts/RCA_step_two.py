@@ -17,7 +17,6 @@ monitors the ground clutter reflectivity.
     main
 """
 # Python standard library
-import gc
 import os
 import sys
 import argparse
@@ -31,13 +30,13 @@ from multiprocessing import Pool
 import matplotlib
 matplotlib.use('Agg')  # <- Reason why matplotlib is imported first.
 import matplotlib.pyplot as pl
-import pyart
 import netCDF4
 import numpy as np
 
 # Custom modules.
 from processing_codes import cvalue_code
 from processing_codes import raijin_tools
+from processing_codes.io import read_data, write_ncfile
 
 
 def plot_figure(outfilename_fig, xdate, rca):
@@ -66,55 +65,6 @@ def plot_figure(outfilename_fig, xdate, rca):
     return None
 
 
-def write_ncfile(outfilename, xdate, rca, rca_zdr, gnrl_meta):
-    """
-    Write data to netCDF4 file.
-
-    Parameters:
-    ===========
-        outfilename: str
-            Output file name saving mask.
-        xdate: np.array
-            Time dimension.
-        rca: np.array
-            Ground clutter 95 percentile reflectivity value.
-        gnrl_meta: dict
-            Metadata dictionnary
-    """
-    dim_len = len(xdate)
-    time_units = "seconds since 1970-01-01"
-    date = xdate.tolist()
-    time = [netCDF4.date2num(d, time_units) for d in date]
-
-    # Write netCDF4 file.
-    with netCDF4.Dataset(outfilename, "w", format="NETCDF4") as rootgrp:
-        # Create dimension
-        rootgrp.createDimension("time", dim_len)
-
-        # Create variables.
-        ncr = rootgrp.createVariable('time', 'f8', ("time",), zlib=True)
-        nca = rootgrp.createVariable('rca', 'f8', ("time",), zlib=True)
-
-        # Assign values.
-        ncr[:] = time
-        nca[:] = rca
-
-        # Set units.
-        ncr.units = time_units
-        nca.units = "dBZ"
-
-        if len(rca_zdr) > 0:
-            ncz = rootgrp.createVariable('rca_zdr', 'f8', ("time",), zlib=True)
-            ncz[:] = rca_zdr
-            ncz.units = "dB"
-
-        # Set main metadata
-        for mykey in gnrl_meta.keys():
-            rootgrp.setncattr_string(mykey, gnrl_meta[mykey])
-
-    return None
-
-
 def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
     """
     Buffer function for multiprocessing and handleing errors. No actual
@@ -133,20 +83,10 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
         rca: float
             CDF[95%] of ground clutter reflectivity
     """
-    file_extension = os.path.splitext(infile)[-1]
-    try:
-        if file_extension == ".h5" or file_extension == ".H5":
-            radar = pyart.aux_io.read_odim_h5(infile)
-        else:
-            radar = pyart.io.read(infile)
-    except Exception:
-        print("Could not read input file", os.path.basename(infile))
-        return None
-
-    volume_date = netCDF4.num2date(radar.time['data'][0], radar.time['units'])
+    volume_date, r, azi, reflec, zdr = read_data(infile, DBZ_FIELD_NAME, ZDR_FIELD_NAME)
 
     try:
-        ext_clut, clut_zdr = cvalue_code.extract_clutter(radar, range_permanent_echoes, azi_permanent_echoes, DBZ_FIELD_NAME, ZDR_FIELD_NAME)
+        ext_clut, clut_zdr = cvalue_code.extract_clutter(r, azi, range_permanent_echoes, azi_permanent_echoes, reflec, zdr)
     except Exception:
         print("Problem with this file:", os.path.basename(infile))
         traceback.print_exc()
