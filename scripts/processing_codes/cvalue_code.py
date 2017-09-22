@@ -1,16 +1,7 @@
 # Python standard library
-import os
-import datetime
-import warnings
 import traceback
 
-from multiprocessing import Pool
-
 # Other modules. Matplotlib must be imported first
-import matplotlib
-matplotlib.use('Agg')  # <- Reason why matplotlib is imported first.
-import matplotlib.pyplot as pl
-import pyart
 import numpy as np
 import pandas as pd
 
@@ -82,17 +73,14 @@ def extract_clutter(r, azi, r_mask, th_mask, reflec, zdr):
         try:
             value_rca = reflec[ttmp, rtmp]
             clut = np.append(clut, value_rca)
+
+            if zdr is not None:
+                rca_zdr = zdr[ttmp, rtmp]
+                clut_zdr = np.append(clut_zdr, rca_zdr)
+
         except IndexError as err:
             print("Could not apply clutter mask.")
             traceback.print_exc()
-
-        if zdr is not None:
-            try:
-                rca_zdr = zdr[ttmp, rtmp]
-                clut_zdr = np.append(clut_zdr, rca_zdr)
-            except IndexError as err:
-                print("Could not apply clutter mask on ZDR.")
-                traceback.print_exc()
 
     # Removing NAN values
     clut = clut[~np.isnan(clut)]

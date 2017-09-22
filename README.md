@@ -58,10 +58,10 @@ Only the `--input` and `--clutter` arguments are required.
 ## Requirements:
 
 Required:
->- [Python 3][3] (tested with Python 3.5 and 3.6, probably won't work with Python 2)
+>- [Python 3][3] (tested with Python 3.5 and 3.6, probably - certainly - won't work with Python 2.)
 >- Python ARM Radar Toolkit [(Py-ART) ][1]
 >- Python Data Analysis Library [(pandas)][2]
->- numba
+>- netCDF4
 
 Optionnal:
 >- trmm_rsl library (for lassen files support)

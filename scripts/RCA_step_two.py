@@ -93,17 +93,18 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
         return None
 
     rca = cvalue_code.compute_95th_percentile(ext_clut)
-    rca_zdr = cvalue_code.compute_95th_percentile(clut_zdr)
+    if ZDR_FIELD_NAME is None:
+        rca_zdr = np.NaN
+    else:
+        rca_zdr = cvalue_code.compute_95th_percentile(clut_zdr)
 
     print("RCA: {} \nZDR: {}".format(rca, rca_zdr))
-
-    if ZDR_FIELD_NAME is None:
-        return volume_date, rca
 
     return volume_date, rca, rca_zdr
 
 
 def main():
+    # Generating file list.
     flist = raijin_tools.get_files(INPUT_DIR)
     if len(flist) == 0:
         print("No file found.")
@@ -111,21 +112,15 @@ def main():
     print("Found %i files." % (len(flist)))
 
     # Create argument list for multiprocessing
-    args_list = []
-    for onefile in flist:
-        tmp = (onefile, CLUTTER_RANGE, CLUTTER_AZIMUTH)
-        args_list.append(tmp)
+    args_list = [(onefile, CLUTTER_RANGE, CLUTTER_AZIMUTH) for onefile in flist]
 
+    # Calling the multiprocessing.
     with Pool(NCPU) as pool:
         rslt = pool.starmap(multproc_buffer_rca, args_list)
     print("Processing done for %i files. Unpacking data." % (len(rslt)))
 
     # Unpack rslt
-    if ZDR_FIELD_NAME is None:
-        xdate, rca = zip(*rslt)
-        rca_zdr = []
-    else:
-        xdate, rca, rca_zdr = zip(*rslt)
+    xdate, rca, rca_zdr = zip(*rslt)
 
     # Sorting xdate (and rca) by chronological order.
     xdate = np.array(xdate, dtype='datetime64[s]')
@@ -171,6 +166,23 @@ def main():
 if __name__ == '__main__':
     """
     Global variables definition
+
+    Global variables:
+    =================
+    INPUT_DIR: str
+        Radar data input directory.
+    OUTPUT_DIR: str
+        Clutter mask file.
+    CLUTTER_MASK_FILE: str
+        Output directory.
+    DBZ_FIELD_NAME: str
+        Raw reflectivity (ZH) field name.
+    ZDR_FIELD_NAME: str
+        Differential reflectivity (ZDR) field name.
+    PLOT_FIG: bool
+        Plot figure (True of False).
+    NCPU: int
+        Number of process
     """
     # Argument parser.
     parser = argparse.ArgumentParser(description="RCA step 1: creation of the clutter mask.")
@@ -196,20 +208,29 @@ if __name__ == '__main__':
     if INPUT_DIR is None:
         parser.error("Need to provide an input directory.")
 
+    # Check if input directory exists.
     if not os.path.isdir(INPUT_DIR):
         parser.error("Invalid input directory.")
 
+    # Checking if the clutter mask is provided.
     if CLUTTER_MASK_FILE is None:
         parser.error("A clutter mask file is required.")
 
+    # Checking if the output directory exists. Creating it otherwise.
     if not os.path.exists(OUTPUT_DIR):
         os.mkdir(OUTPUT_DIR)
         print("Creating output directory.", OUTPUT_DIR)
 
+    # Reading clutter mask.
     with netCDF4.Dataset(CLUTTER_MASK_FILE, "r") as ncid:
-        CLUTTER_RANGE = ncid['range'][:]
-        CLUTTER_AZIMUTH = ncid['azimuth'][:]
-        INST_NAME = ncid.instrument_name
+        try:
+            CLUTTER_RANGE = ncid['range'][:]
+            CLUTTER_AZIMUTH = ncid['azimuth'][:]
+            INST_NAME = ncid.instrument_name
+        except Exception:
+            traceback.print_exc()
+            print("Problem with the Clutter mask. Did you use RCA_step_one.py to create it?")
+            sys.exit()
 
     if CLUTTER_RANGE is None:
         print("Clutter mask invalid.")
