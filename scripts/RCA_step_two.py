@@ -37,7 +37,7 @@ import numpy as np
 
 # Custom modules.
 from processing_codes import cvalue_code
-from processing_codes.raijin_tools import get_files
+from processing_codes import raijin_tools
 
 
 def plot_figure(outfilename_fig, xdate, rca):
@@ -60,13 +60,13 @@ def plot_figure(outfilename_fig, xdate, rca):
     pl.title("Monitoring of clutter reflectivity")
     pl.ylabel("CDF[clutter, 95%] (dBZ)")
     fig.autofmt_xdate()
-    pl.savefig(outfilename_fig, dpi=150)
+    pl.savefig(outfilename_fig)
     pl.close()
 
     return None
 
 
-def write_ncfile(outfilename, xdate, rca, gnrl_meta):
+def write_ncfile(outfilename, xdate, rca, rca_zdr, gnrl_meta):
     """
     Write data to netCDF4 file.
 
@@ -102,6 +102,11 @@ def write_ncfile(outfilename, xdate, rca, gnrl_meta):
         # Set units.
         ncr.units = time_units
         nca.units = "dBZ"
+
+        if len(rca_zdr) > 0:
+            ncz = rootgrp.createVariable('rca_zdr', 'f8', ("time",), zlib=True)
+            ncz[:] = rca_zdr
+            ncz.units = "dB"
 
         # Set main metadata
         for mykey in gnrl_meta.keys():
@@ -141,20 +146,23 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
     volume_date = netCDF4.num2date(radar.time['data'][0], radar.time['units'])
 
     try:
-        ext_clut = cvalue_code.extract_clutter(radar, range_permanent_echoes, azi_permanent_echoes, DBZ_FIELD_NAME)
+        ext_clut, clut_zdr = cvalue_code.extract_clutter(radar, range_permanent_echoes, azi_permanent_echoes, DBZ_FIELD_NAME, ZDR_FIELD_NAME)
     except Exception:
         print("Problem with this file:", os.path.basename(infile))
         traceback.print_exc()
         return None
 
     rca = cvalue_code.compute_95th_percentile(ext_clut)
-    gc.collect()  # Free unused memory
+    rca_zdr = cvalue_code.compute_95th_percentile(clut_zdr)
 
-    return volume_date, rca
+    if ZDR_FIELD_NAME is None:
+        return volume_date, rca
+
+    return volume_date, rca, rca_zdr
 
 
 def main():
-    flist = get_files(INPUT_DIR)
+    flist = raijin_tools.get_files(INPUT_DIR)
 
     # Create argument list for multiprocessing
     args_list = []
@@ -166,21 +174,22 @@ def main():
         rslt = pool.starmap(multproc_buffer_rca, args_list)
 
     # Unpack rslt
-    rca = []
-    xdate = []
-    for tmptime, tmprca in rslt:
-        xdate.append(tmptime)
-        rca.append(tmprca)
+    if ZDR_FIELD_NAME is None:
+        xdate, rca = zip(*rslt)
+        rca_zdr = []
+    else:
+        xdate, rca, rca_zdr = zip(*rslt)
 
     # Sorting xdate (and rca) by chronological order.
-    rca = np.array(rca)
     xdate = np.array(xdate, dtype='datetime64[s]')
     pos = np.argsort(xdate)
     xdate = xdate[pos]
     rca = rca[pos]
+    if ZDR_FIELD_NAME is not None:
+        rca_zdr = rca_zdr[pos]
 
     # Output suffix str:
-    st = xdate.min().tolist().isoformat()
+    st = xdate.min().tolist().isoformat()  # convert numpy datetime64 to datetime.datetime.
     ed = xdate.max().tolist().isoformat()
     # Data output file name.
     outfilename = "RCA_{}_{}_to_{}.nc".format(INST_NAME, st, ed)
@@ -199,7 +208,7 @@ def main():
     gnrl_meta['instrument_name'] = INST_NAME
     gnrl_meta['start_date'] = st
     gnrl_meta['end_date'] = ed
-    write_ncfile(outfilename, xdate, rca, gnrl_meta)
+    write_ncfile(outfilename, xdate, rca, rca_zdr, gnrl_meta)
 
     if PLOT_FIG:
         try:
@@ -221,7 +230,8 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input', dest='indir', default=None, type=str, help='Radar data input directory.')
     parser.add_argument('-c', '--clutter', dest='clutfile', default=None, type=str, help='Clutter mask file.')
     parser.add_argument('-o', '--output', dest='output', default=os.path.abspath("../saved_rca/"), type=str, help='Output directory.')
-    parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (total power) field name.')
+    parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (ZH) field name.')
+    parser.add_argument('-z', '--zdr', dest='zdr_name', default=None, type=str, help='Differential reflectivity (ZDR) field name.')
     parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
     parser.add_argument('-j', '--cpu', dest='ncpu', default=16, type=int, help='Number of process')
 
@@ -231,6 +241,7 @@ if __name__ == '__main__':
     OUTPUT_DIR = args.output
     CLUTTER_MASK_FILE = args.clutfile
     DBZ_FIELD_NAME = args.dbz_name
+    ZDR_FIELD_NAME = args.zdr_name
     PLOT_FIG = args.l_fig
     NCPU = args.ncpu
 

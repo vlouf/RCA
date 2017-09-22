@@ -1,6 +1,7 @@
+# Python standard library
 import os
-import datetime
 
+# Other libraries.
 import numpy as np
 
 
@@ -10,9 +11,9 @@ def welcome_message(INPUT_DIR, OUTPUT_DIR, RHOHV_FIELD_NAME, DBZ_FIELD_NAME, PLO
     Print a welcome message with a recap on the main global variables status
     '''
 
-    msg = " "*38 + "RCA\n" + " "*22 + "Step 1: creation of the clutter mask"
+    msg = " " * 38 + "RCA\n" + " " * 22 + "Step 1: creation of the clutter mask"
 
-    print("#"*80)
+    print("#" * 80)
     print("\n" + msg + "\n")
     print("This program will look for ground radar data in " + INPUT_DIR)
     print("This program will save the ground clutter mask in " + OUTPUT_DIR)
@@ -24,13 +25,13 @@ def welcome_message(INPUT_DIR, OUTPUT_DIR, RHOHV_FIELD_NAME, DBZ_FIELD_NAME, PLO
     else:
         print("No figure will be plotted.")
 
-    print("#"*80)
+    print("#" * 80)
     print("\n\n")
 
     return None
 
 
-def get_files(inpath, date=None):
+def get_files(inpath):
     '''
     Find the list of files with the supported extension in the given
     path. Will recursively search in subdirectories too. If provided a date
@@ -41,9 +42,6 @@ def get_files(inpath, date=None):
     ==========
         inpath: str
             General path for the data.
-        date: str or datetime
-            Look for files with a specific date. If date is None, it will look
-            for all files with the supported extension.
 
     Returns
     =======
@@ -55,20 +53,8 @@ def get_files(inpath, date=None):
                            '.H5', '.lassen', '.PPI', '.UF', '.h5*', '.H5*']
     flist = []
 
-    # Check date type
-    if isinstance(date, datetime.datetime):
-        date = date.strftime("%Y%m%d")
-
     for dirpath, dirnames, filenames in os.walk(inpath):
         for filenames_slice in filenames:
-
-            # If no date provided, nothing new under the sun
-            if date is None:
-                pass  # pretends there was no if statement
-            elif date in filenames_slice:
-                pass  # pretends there was no if statement
-            else:
-                continue  # A date was given and we didn't found it.
 
             file_extension = os.path.splitext(str(filenames_slice))[1]
             # Get extension
@@ -79,8 +65,7 @@ def get_files(inpath, date=None):
             else:  # If not test next file.
                 continue
 
-            # File does have the supported extension, we keep it for returning
-            # list
+            # File does have the supported extension, we keep it for returning list
             flist.append(the_path)
 
     to_return = flist
