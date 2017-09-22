@@ -63,6 +63,35 @@ def _read_with_pyart(infile, dbz_name, zdr_name):
     return volume_date, r, azi, reflec, zdr
 
 
+def _read_with_netcdf(infile, dbz_name, zdr_name):
+    with netCDF4.Dataset(infile, "r") as ncid:
+        # Extract datetime
+        volume_date = netCDF4.num2date(ncid['time'][0], ncid['time'].units)
+
+        # Get first sweep
+        sweep = ncid["sweep_start_ray_index"][:]
+        stsw = sweep[0]
+        edsw = sweep[1] - 1
+
+        # Extract range and azimuth
+        azi = ncid["azimuth"][stsw:edsw]
+        r = ncid["range"][:]
+
+        # Get reflectivity and ZDR.
+        try:
+            refl = ncid[dbz_name][stsw:edsw, :].filled(np.NaN)
+            if zdr_name is not None:
+                zdr = ncid[zdr_name][stsw:edsw, :].filled(np.NaN)
+            else:
+                zdr = None
+        except KeyError:
+            print("Wrong RHOHV/DBZ field names provided. The field names in radar files are:")
+            print(radar.fields.keys())
+            raise KeyError("Wrong field name provided")
+
+    return volume_date, r, azi, refl, zdr
+
+
 def read_data(infile, dbz_name="DBZ", zdr_name=None):
     """
     Parameters:
@@ -91,7 +120,7 @@ def read_data(infile, dbz_name="DBZ", zdr_name=None):
     file_extension = os.path.splitext(infile)[-1]
 
     if file_extension == ".nc" or file_extension == ".NC":
-        volume_date, r, azi, reflec, zdr = _read_with_pyart(infile, dbz_name, zdr_name)
+        volume_date, r, azi, reflec, zdr = _read_with_netcdf(infile, dbz_name, zdr_name)
     else:
         volume_date, r, azi, reflec, zdr = _read_with_pyart(infile, dbz_name, zdr_name)
 

@@ -124,10 +124,12 @@ def main():
 
     # Sorting xdate (and rca) by chronological order.
     xdate = np.array(xdate, dtype='datetime64[s]')
+    rca = np.array(rca)
     pos = np.argsort(xdate)
     xdate = xdate[pos]
     rca = rca[pos]
     if ZDR_FIELD_NAME is not None:
+        rca_zdr = np.array(rca_zdr)
         rca_zdr = rca_zdr[pos]
 
     # Output suffix str:
