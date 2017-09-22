@@ -85,8 +85,8 @@ def extract_clutter(radar, r_mask, th_mask, dbz_name='DBZ', zdr_name=None):
 
     reflec[reflec < 10] = np.NaN
     dr = r[1] - r[0]
-    clut = []
-    clut_zdr = []
+    clut = np.array([])
+    clut_zdr = np.array([])
 
     for the_r, the_azi in zip(r_mask, th_mask):
         pos_r = np.where((the_r >= r - dr) & (the_r < r + dr))[0]
@@ -105,29 +105,21 @@ def extract_clutter(radar, r_mask, th_mask, dbz_name='DBZ', zdr_name=None):
 
         try:
             value_rca = reflec[ttmp, rtmp]
-            if np.isscalar(value_rca):
-                clut.append(value_rca)
-            elif len(value_rca) >= 1:
-                [clut.append(tmp_value) for tmp_value in value_rca]
-            else:
-                continue
+            clut = np.append(clut, value_rca)
         except IndexError as err:
             print("Could not apply clutter mask.")
             traceback.print_exc()
-            continue
 
         if zdr_name is not None:
             try:
                 rca_zdr = zdr[ttmp, rtmp]
-                if np.isscalar(rca_zdr):
-                    clut_zdr.append(rca_zdr)
-                elif len(rca_zdr) >= 1:
-                    [clut_zdr.append(tmp_value) for tmp_value in rca_zdr]
-                else:
-                    continue
+                clut_zdr = np.append(clut_zdr, rca_zdr)
             except IndexError as err:
                 print("Could not apply clutter mask on ZDR.")
                 traceback.print_exc()
-                continue
 
-    return np.array(clut), np.array(clut_zdr)
+    # Removing NAN values
+    clut = clut[~np.isnan(clut)]
+    clut_zdr = clut_zdr[~np.isnan(clut_zdr)]
+
+    return clut, clut_zdr

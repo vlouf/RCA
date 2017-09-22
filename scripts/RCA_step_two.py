@@ -155,6 +155,8 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
     rca = cvalue_code.compute_95th_percentile(ext_clut)
     rca_zdr = cvalue_code.compute_95th_percentile(clut_zdr)
 
+    print("RCA: {} \nZDR: {}".format(rca, rca_zdr))
+
     if ZDR_FIELD_NAME is None:
         return volume_date, rca
 
@@ -163,6 +165,10 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
 
 def main():
     flist = raijin_tools.get_files(INPUT_DIR)
+    if len(flist) == 0:
+        print("No file found.")
+        return None
+    print("Found %i files." % (len(flist)))
 
     # Create argument list for multiprocessing
     args_list = []
@@ -172,6 +178,7 @@ def main():
 
     with Pool(NCPU) as pool:
         rslt = pool.starmap(multproc_buffer_rca, args_list)
+    print("Processing done for %i files. Unpacking data." % (len(rslt)))
 
     # Unpack rslt
     if ZDR_FIELD_NAME is None:
