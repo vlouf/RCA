@@ -5,7 +5,7 @@ import netCDF4
 import numpy as np
 
 
-def _read_with_pyart(infile, dbz_name, zdr_name):
+def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
     """
     Parameters:
     ===========
@@ -57,13 +57,18 @@ def _read_with_pyart(infile, dbz_name, zdr_name):
             zdr = None
     except KeyError:
         print("Wrong RHOHV/DBZ field names provided. The field names in radar files are:")
-        print(radar.fields.keys())
         raise KeyError("Wrong field name provided")
 
-    return volume_date, r, azi, reflec, zdr
+    try:
+        rhohv = radar.fields[rhohv_name]['data'][rslice].filled(np.NaN)
+    except Exception:
+        print("Problem with cross-correlation ratio field. Maybe missing? Continuing without it.")
+        rhohv = None
+
+    return volume_date, r, azi, reflec, zdr, rhohv
 
 
-def _read_with_netcdf(infile, dbz_name, zdr_name):
+def _read_with_netcdf(infile, dbz_name, zdr_name, rhohv_name):
     with netCDF4.Dataset(infile, "r") as ncid:
         # Extract datetime
         volume_date = netCDF4.num2date(ncid['time'][0], ncid['time'].units)
@@ -89,10 +94,17 @@ def _read_with_netcdf(infile, dbz_name, zdr_name):
             print(radar.fields.keys())
             raise KeyError("Wrong field name provided")
 
-    return volume_date, r, azi, refl, zdr
+        # Extract RHOHV
+        try:
+            rhohv = ncid[rhohv][stsw:edsw, :].filled(np.NaN)
+        except Exception:
+            print("Problem with cross-correlation ratio field. Maybe missing? Continuing without it.")
+            rhohv = None
+
+    return volume_date, r, azi, refl, zdr, rhohv
 
 
-def read_data(infile, dbz_name="DBZ", zdr_name=None):
+def read_data(infile, dbz_name="DBZ", zdr_name=None, rhohv_name="RHOHV"):
     """
     Parameters:
     ===========
@@ -120,14 +132,14 @@ def read_data(infile, dbz_name="DBZ", zdr_name=None):
     file_extension = os.path.splitext(infile)[-1]
 
     if file_extension == ".nc" or file_extension == ".NC":
-        volume_date, r, azi, reflec, zdr = _read_with_netcdf(infile, dbz_name, zdr_name)
+        volume_date, r, azi, reflec, zdr, rhohv = _read_with_netcdf(infile, dbz_name, zdr_name, rhohv_name)
     else:
-        volume_date, r, azi, reflec, zdr = _read_with_pyart(infile, dbz_name, zdr_name)
+        volume_date, r, azi, reflec, zdr, rhohv = _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name)
 
-    return volume_date, r, azi, reflec, zdr
+    return volume_date, r, azi, reflec, zdr, rhohv
 
 
-def write_ncfile(outfilename, xdate, rca, rca_zdr, gnrl_meta):
+def write_ncfile(outfilename, xdate, rca, rca_zdr, rain, gnrl_meta):
     """
     Write data to netCDF4 file.
 
@@ -155,14 +167,17 @@ def write_ncfile(outfilename, xdate, rca, rca_zdr, gnrl_meta):
         # Create variables.
         ncr = rootgrp.createVariable('time', 'f8', ("time",), zlib=True)
         nca = rootgrp.createVariable('rca', 'f8', ("time",), zlib=True)
+        ncrain = rootgrp.createVariable('rain', 'f8', ("time",), zlib=True)
 
         # Assign values.
         ncr[:] = time
         nca[:] = rca
+        ncrain[:] = rain
 
         # Set units.
         ncr.units = time_units
         nca.units = "dBZ"
+        ncrain.units = "mm/h"
 
         if len(rca_zdr) > 0:
             ncz = rootgrp.createVariable('rca_zdr', 'f8', ("time",), zlib=True)

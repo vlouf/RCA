@@ -65,6 +65,36 @@ def plot_figure(outfilename_fig, xdate, rca):
     return None
 
 
+def get_rain(r, azi, dbz, rhohv):
+    """
+    Compute a rough estimation of the rainfall rate at radar location (< 5 km)
+    using an inverse Marshall-Palmer Z-R law.
+
+    Parameters:
+    ===========
+    r: ndarray
+        Range
+    azi: ndarray
+        Azimuth
+    dbz: ndarray
+        Reflectivity
+    rhohv: ndarray
+        Cross-correlation ratio
+
+    Returns:
+    ========
+    rain_at_radar: float
+        Estimated rainfall rate at radar site.
+    """
+    [R, T] = np.meshgrid(r, azi)
+    dbz[rho < 0.9] = np.NaN
+    mydbz = dbz[R < 5e3]
+    rain = (10 ** (mydbz / 10) / 300) ** (2 / 3)
+    rain_at_radar = np.nanmean(rain)
+
+    return rain_at_radar
+
+
 def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
     """
     Buffer function for multiprocessing and handleing errors. No actual
@@ -73,17 +103,21 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
 
     Parameters:
     ===========
-        infile: str
-            Radar file name.
+    infile: str
+        Radar file name.
 
     Returns:
     ========
-        volume_date: datetime
-            Datetime for input volume
-        rca: float
-            CDF[95%] of ground clutter reflectivity
+    volume_date: datetime
+        Datetime for input volume
+    rca: float
+        CDF[95%] of ground clutter reflectivity
     """
-    volume_date, r, azi, reflec, zdr = read_data(infile, DBZ_FIELD_NAME, ZDR_FIELD_NAME)
+    volume_date, r, azi, reflec, zdr, rhohv = read_data(infile, DBZ_FIELD_NAME, ZDR_FIELD_NAME, RHOHV_FIELD_NAME)
+    if rhohv is not None:
+        rain_at_radar = get_rain(r, azi, reflec, rhohv)
+    else:
+        rain_at_radar = np.NaN
 
     try:
         ext_clut, clut_zdr = cvalue_code.extract_clutter(r, azi, range_permanent_echoes, azi_permanent_echoes, reflec, zdr)
@@ -100,7 +134,7 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
 
     print("RCA: {} \nZDR: {}".format(rca, rca_zdr))
 
-    return volume_date, rca, rca_zdr
+    return volume_date, rca, rca_zdr, rain_at_radar
 
 
 def main():
@@ -120,14 +154,17 @@ def main():
     print("Processing done for %i files. Unpacking data." % (len(rslt)))
 
     # Unpack rslt
-    xdate, rca, rca_zdr = zip(*rslt)
+    xdate, rca, rca_zdr, rain = zip(*rslt)
 
-    # Sorting xdate (and rca) by chronological order.
+    # Converting to numpy array
     xdate = np.array(xdate, dtype='datetime64[s]')
     rca = np.array(rca)
+    rain = np.array(rain)
+    # Sorting xdate (and rca) by chronological order.
     pos = np.argsort(xdate)
     xdate = xdate[pos]
     rca = rca[pos]
+    rain = rain[pos]
     if ZDR_FIELD_NAME is not None:
         rca_zdr = np.array(rca_zdr)
         rca_zdr = rca_zdr[pos]
@@ -152,7 +189,7 @@ def main():
     gnrl_meta['instrument_name'] = INST_NAME
     gnrl_meta['start_date'] = st
     gnrl_meta['end_date'] = ed
-    write_ncfile(outfilename, xdate, rca, rca_zdr, gnrl_meta)
+    write_ncfile(outfilename, xdate, rca, rca_zdr, rain, gnrl_meta)
 
     if PLOT_FIG:
         try:
@@ -193,6 +230,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', dest='output', default=os.path.abspath("../saved_rca/"), type=str, help='Output directory.')
     parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (ZH) field name.')
     parser.add_argument('-z', '--zdr', dest='zdr_name', default=None, type=str, help='Differential reflectivity (ZDR) field name.')
+    parser.add_argument('-r', '--rhohv', dest='rhohv_name', default="RHOHV", type=str, help='Cross correlation ratio name.')
     parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
     parser.add_argument('-j', '--cpu', dest='ncpu', default=16, type=int, help='Number of process')
 
@@ -203,6 +241,7 @@ if __name__ == '__main__':
     CLUTTER_MASK_FILE = args.clutfile
     DBZ_FIELD_NAME = args.dbz_name
     ZDR_FIELD_NAME = args.zdr_name
+    RHOHV_FIELD_NAME = args.rhohv_name
     PLOT_FIG = args.l_fig
     NCPU = args.ncpu
 
