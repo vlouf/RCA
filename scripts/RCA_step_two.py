@@ -86,9 +86,12 @@ def get_rain(r, azi, dbz, rhohv):
     rain_at_radar: float
         Estimated rainfall rate at radar site.
     """
+    mydbz = dbz.copy()
+
     [R, T] = np.meshgrid(r, azi)
-    dbz[rho < 0.9] = np.NaN
-    mydbz = dbz[R < 5e3]
+    # Keeping points at 5 km from radar & with RHOHV > 0.9
+    mydbz[rhohv < 0.9] = np.NaN
+    mydbz = mydbz[R < 5e3]
     rain = (10 ** (mydbz / 10) / 300) ** (2 / 3)
     rain_at_radar = np.nanmean(rain)
 
@@ -231,7 +234,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--dbz', dest='dbz_name', default="DBZ", type=str, help='Raw reflectivity (ZH) field name.')
     parser.add_argument('-z', '--zdr', dest='zdr_name', default=None, type=str, help='Differential reflectivity (ZDR) field name.')
     parser.add_argument('-r', '--rhohv', dest='rhohv_name', default="RHOHV", type=str, help='Cross correlation ratio name.')
-    parser.add_argument('-f', '--figure', dest='l_fig', default=True, type=bool, help='Plot figure (True of False).')
+    parser.add_argument('-f', '--figure', dest='l_fig', default=False, type=bool, help='Plot figure (True of False).')
     parser.add_argument('-j', '--cpu', dest='ncpu', default=16, type=int, help='Number of process')
 
     # Global variables initialization.

@@ -1,4 +1,5 @@
 import os
+import traceback
 
 import pyart
 import netCDF4
@@ -96,8 +97,9 @@ def _read_with_netcdf(infile, dbz_name, zdr_name, rhohv_name):
 
         # Extract RHOHV
         try:
-            rhohv = ncid[rhohv][stsw:edsw, :].filled(np.NaN)
+            rhohv = ncid[rhohv_name][stsw:edsw, :].filled(np.NaN)
         except Exception:
+            traceback.print_exc()
             print("Problem with cross-correlation ratio field. Maybe missing? Continuing without it.")
             rhohv = None
 
