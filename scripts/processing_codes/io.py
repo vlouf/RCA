@@ -1,6 +1,8 @@
+# Python standard library
 import os
 import traceback
 
+# Other libraries
 import pyart
 import netCDF4
 import numpy as np
@@ -61,10 +63,15 @@ def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
         raise KeyError("Wrong field name provided")
 
     try:
-        rhohv = radar.fields[rhohv_name]['data'][rslice].filled(np.NaN)
+        rhohv = radar.fields[rhohv_name]['data'][rslice]
     except Exception:
         print("Problem with cross-correlation ratio field. Maybe missing? Continuing without it.")
         rhohv = None
+
+    try:  # In case rhohv is a MaskedArray
+        rhohv = rhohv.filled(np.NaN)
+    except AttributeError:
+        pass
 
     return volume_date, r, azi, reflec, zdr, rhohv
 
@@ -97,11 +104,16 @@ def _read_with_netcdf(infile, dbz_name, zdr_name, rhohv_name):
 
         # Extract RHOHV
         try:
-            rhohv = ncid[rhohv_name][stsw:edsw, :].filled(np.NaN)
+            rhohv = ncid[rhohv_name][stsw:edsw, :]
         except Exception:
             traceback.print_exc()
             print("Problem with cross-correlation ratio field. Maybe missing? Continuing without it.")
             rhohv = None
+
+        try:  # In case rhohv is a MaskedArray
+            rhohv = rhohv.filled(np.NaN)
+        except AttributeError:
+            pass
 
     return volume_date, r, azi, refl, zdr, rhohv
 

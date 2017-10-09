@@ -12,8 +12,9 @@ monitors the ground clutter reflectivity.
     :toctree: generated/
 
     plot_figure
-    write_ncfile
+    get_rain
     multproc_buffer_rca
+    unpack_data
     main
 """
 # Python standard library
@@ -135,27 +136,29 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
     else:
         rca_zdr = cvalue_code.compute_95th_percentile(clut_zdr)
 
-    print("RCA: {} \nZDR: {}".format(rca, rca_zdr))
-
     return volume_date, rca, rca_zdr, rain_at_radar
 
 
-def main():
-    # Generating file list.
-    flist = raijin_tools.get_files(INPUT_DIR)
-    if len(flist) == 0:
-        print("No file found.")
-        return None
-    print("Found %i files." % (len(flist)))
+def unpack_data(rslt):
+    """
+    Unpack data from multiprocessing and convert them to numpy array.
 
-    # Create argument list for multiprocessing
-    args_list = [(onefile, CLUTTER_RANGE, CLUTTER_AZIMUTH) for onefile in flist]
+    Parameter:
+    ==========
+    rslt: list
+        list of tuples returned by multiprocessing.
 
-    # Calling the multiprocessing.
-    with Pool(NCPU) as pool:
-        rslt = pool.starmap(multproc_buffer_rca, args_list)
-    print("Processing done for %i files. Unpacking data." % (len(rslt)))
-
+    Returns:
+    ========
+    xdate: ndarray
+        Datetime array.
+    rca: ndarray
+        RCA values.
+    rca_zdr: ndarray
+        RCA for ZDR values.
+    rain: ndarray
+        Rainrate estimation at radar site.
+    """
     # Unpack rslt
     xdate, rca, rca_zdr, rain = zip(*rslt)
 
@@ -172,20 +175,62 @@ def main():
         rca_zdr = np.array(rca_zdr)
         rca_zdr = rca_zdr[pos]
 
+    return xdate, rca, rca_zdr, rain
+
+
+def main():
+    """
+    1/ Generate file list.
+    2/ Generate argument list for multiprocessing.
+    3/ Invoke multiprocessing.
+    4/ Unpack results from multiprocessing return and convert it to proper type.
+    5/ Create output file name.
+    6/ Save data.
+    7/ (optionnal) plot figure.
+
+    Parameters:
+    ===========
+    INPUT_DIR: str
+        Radar data input directory.
+    OUTPUT_DIR: str
+        Clutter mask file.
+    CLUTTER_RANGE: ndarray
+        Clutter mask range.
+    CLUTTER_AZIMUTH: ndarray
+        Clutter mask azimuth.
+    PLOT_FIG: bool
+        Plot figure (True of False).
+    NCPU: int
+        Number of process
+    """
+    # Generating file list.
+    flist = raijin_tools.get_files(INPUT_DIR)
+    if len(flist) == 0:
+        print("No file found.")
+        return None
+    print("Found %i files." % (len(flist)))
+
+    # Create argument list for multiprocessing
+    args_list = [(onefile, CLUTTER_RANGE, CLUTTER_AZIMUTH) for onefile in flist]
+
+    # Calling the multiprocessing.
+    with Pool(NCPU) as pool:
+        rslt = pool.starmap(multproc_buffer_rca, args_list)
+    print("Processing done for %i files. Unpacking data." % (len(rslt)))
+
+    xdate, rca, rca_zdr, rain = unpack_data(rslt)
+
     # Output suffix str:
     st = xdate.min().tolist().isoformat()  # convert numpy datetime64 to datetime.datetime.
     ed = xdate.max().tolist().isoformat()
-    # Data output file name.
+    # Data and figure output file names.
     outfilename = "RCA_{}_{}_to_{}.nc".format(INST_NAME, st, ed)
     outfilename = os.path.join(OUTPUT_DIR, outfilename)
-    # Figure output file name.
-    outfilename_fig = "RCA_{}_{}_to_{}.png".format(INST_NAME, st, ed)
-    outfilename_fig = os.path.join(OUTPUT_DIR, outfilename_fig)
+    outfilename_fig = outfilename.replace(".nc", ".png")
 
     # Check if output file exists.
     if os.path.isfile(outfilename):
-        print("Output file already exists {}.".format(outfilename))
-        print("Doing nothing.")
+        print("Output file already exists {}. Doing nothing.".format(outfilename))
         return None
 
     gnrl_meta = dict()
