@@ -128,7 +128,7 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
     except Exception:
         print("Problem with this file:", os.path.basename(infile))
         traceback.print_exc()
-        return None
+        return volume_date, np.NaN, np.NaN, np.NaN
 
     rca = cvalue_code.compute_95th_percentile(ext_clut)
     if ZDR_FIELD_NAME is None:
@@ -272,7 +272,7 @@ if __name__ == '__main__':
         Number of process
     """
     # Argument parser.
-    parser = argparse.ArgumentParser(description="RCA step 1: creation of the clutter mask.")
+    parser = argparse.ArgumentParser(description="RCA step 2: computing RCA results.")
     parser.add_argument('-i', '--input', dest='indir', default=None, type=str, help='Radar data input directory.')
     parser.add_argument('-c', '--clutter', dest='clutfile', default=None, type=str, help='Clutter mask file.')
     parser.add_argument('-o', '--output', dest='output', default=os.path.abspath("../saved_rca/"), type=str, help='Output directory.')
