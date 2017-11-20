@@ -146,9 +146,14 @@ def read_data(infile, dbz_name="DBZ", zdr_name=None, rhohv_name="RHOHV"):
     file_extension = os.path.splitext(infile)[-1]
 
     if file_extension == ".nc" or file_extension == ".NC":
-        volume_date, r, azi, reflec, zdr, rhohv = _read_with_netcdf(infile, dbz_name, zdr_name, rhohv_name)
+        rslt = _read_with_netcdf(infile, dbz_name, zdr_name, rhohv_name)
     else:
-        volume_date, r, azi, reflec, zdr, rhohv = _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name)
+        rslt = _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name)
+
+    if rslt is None:
+        volume_date, r, azi, reflec, zdr, rhohv = [None] * 6
+    else:
+        volume_date, r, azi, reflec, zdr, rhohv = rslt
 
     return volume_date, r, azi, reflec, zdr, rhohv
 

@@ -118,6 +118,10 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
         CDF[95%] of ground clutter reflectivity
     """
     volume_date, r, azi, reflec, zdr, rhohv = read_data(infile, DBZ_FIELD_NAME, ZDR_FIELD_NAME, RHOHV_FIELD_NAME)
+    if volume_date is None:
+        print("File {} could not be read.".format(os.path.basename(infile)))
+        return None
+
     if rhohv is not None:
         rain_at_radar = get_rain(r, azi, reflec, rhohv)
     else:
@@ -126,9 +130,9 @@ def multproc_buffer_rca(infile, range_permanent_echoes, azi_permanent_echoes):
     try:
         ext_clut, clut_zdr = cvalue_code.extract_clutter(r, azi, range_permanent_echoes, azi_permanent_echoes, reflec, zdr)
     except Exception:
-        print("Problem with this file:", os.path.basename(infile))
+        print("Problem with file {}.".format(os.path.basename(infile)))
         traceback.print_exc()
-        return volume_date, np.NaN, np.NaN, np.NaN
+        return None
 
     rca = cvalue_code.compute_95th_percentile(ext_clut)
     if ZDR_FIELD_NAME is None:
@@ -160,7 +164,8 @@ def unpack_data(rslt):
         Rainrate estimation at radar site.
     """
     # Unpack rslt
-    xdate, rca, rca_zdr, rain = zip(*rslt)
+    rslt_clean = [r for r in rslt if r is not None]
+    xdate, rca, rca_zdr, rain = zip(*rslt_clean)
 
     # Converting to numpy array
     xdate = np.array(xdate, dtype='datetime64[s]')
