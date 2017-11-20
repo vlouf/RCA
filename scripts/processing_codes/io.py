@@ -65,7 +65,7 @@ def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
     try:
         rhohv = radar.fields[rhohv_name]['data'][rslice]
     except Exception:
-        print("Problem with cross-correlation ratio field. Maybe missing? Continuing without it.")
+        # print("Problem with cross-correlation ratio field. Maybe missing? Continuing without it.")
         rhohv = None
 
     try:  # In case rhohv is a MaskedArray
