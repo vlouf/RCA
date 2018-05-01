@@ -283,6 +283,8 @@ def main():
     range_tot = np.array([], dtype=int)
     azi_tot = np.array([])
     for rslice, azislice in rslt:
+        if rslice is None:
+            continue
         range_tot = np.append(range_tot, rslice)
         azi_tot = np.append(azi_tot, azislice)
 
