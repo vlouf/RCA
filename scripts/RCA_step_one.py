@@ -20,7 +20,6 @@ handles the creation of the clutter mask.
 import os
 import time
 import signal
-import hashlib
 import argparse
 import datetime
 import warnings
@@ -81,13 +80,13 @@ def plot_freq_map(outfilename_fig, rrange, freq):
 
     # Get cartesians dimension.
     [TH, R] = np.meshgrid(theta, r, indexing='ij')
-    x = R*np.cos(TH*np.pi/180)
-    y = R*np.sin(TH*np.pi/180)
+    x = R * np.cos(TH * np.pi / 180)
+    y = R * np.sin(TH * np.pi / 180)
 
     pl.figure()
     pl.pcolor(x, y, freq, cmap='pyart_Theodore16', vmin=0, vmax=100)
     for r in [5e3, 10e3]:
-        pl.plot(r*np.cos(theta*np.pi/180), r*np.sin(theta*np.pi/180), 'k-')
+        pl.plot(r * np.cos(theta * np.pi / 180), r * np.sin(theta * np.pi / 180), 'k-')
     pl.axis('square')
     pl.axis((-10e3, 10e3, -10e3, 10e3))
     pl.title("Non-meteorological echoes")
@@ -173,7 +172,7 @@ def multproc_buffer_create_clut_map(infile):
             radar = pyart.io.read(infile)
     except Exception:
         print("Could not read input file", os.path.basename(infile))
-        return None
+        return None, None
 
     try:
         print(crayons.green("{} read.".format(infile)))
@@ -186,7 +185,7 @@ def multproc_buffer_create_clut_map(infile):
     except Exception:
         print("Problem with this file:", os.path.basename(infile))
         traceback.print_exc()
-        return None
+        return None, None
 
     return r_clutt, azi_clutt
 
@@ -212,7 +211,7 @@ def fun_coach_timing(infile):
         rslt = multproc_buffer_create_clut_map(infile)
     except TimeoutException:
         print(crayons.red("TOOO MUCH TIME TRYING TO READ " + infile))
-        return None
+        return None, None
     else:
         signal.alarm(0)
 

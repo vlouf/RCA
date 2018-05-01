@@ -71,7 +71,7 @@ def get_clutter_position(radar,
     try:
         cross_correlation_ratio = radar.fields[rhohv_name]['data'][rslice].filled(np.NaN)
     except KeyError:
-        print("Wrong (or absent) RHOHV field names provided. Using statistics to compute ground clutter.")
+        # print("Wrong (or absent) RHOHV field names provided. Using statistics to compute ground clutter.")
         cross_correlation_ratio = np.zeros_like(total_power)
         if refl_thrld < 50:
             refl_thrld = 50
