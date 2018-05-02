@@ -6,14 +6,13 @@ This is a ground radar calibration technique using the monitoring of ground clut
 
 The radar equation is:
 
-<img src="http://www.sciweavers.org/tex2img.php?eq=%20Z%20%3D%2010%20%5Clog%20C%20%2B%2020%20%5Clog%20r%20%2B%2010%20%5Clog%20P_t&bc=White&fc=Black&im=jpg&fs=12&ff=fourier&edit=0" align="center" border="0" alt=" Z = 10 \log C + 20 \log r + 10 \log P_t" width="219" height="18" />
+![](http://latex.codecogs.com/gif.latex?Z%20%3D%2010%20%5Clog%20C%20&plus;%2020%20%5Clog%20r%20&plus;%2010%20%5Clog%20P_t)
 
 where *Z* (dBZ) is the reflectivity factor, *r* is the range,  *Pt* is the total power returned by the target, and *C* is the so-called radar constant. To calibrate radars, we need to determine the value of *C*.
 
-Ground echoes are generally caused by buildings, roads, or topographic structure near the radar. They are fixed targets <img src="http://www.sciweavers.org/tex2img.php?eq=%28%5CDelta%20r%20%3D%200%29&bc=White&fc=Black&im=jpg&fs=12&ff=fourier&edit=0" align="center" border="0" alt="(\Delta r = 0)" width="58" height="17" />, and their microphysics don't change over time <img src="http://www.sciweavers.org/tex2img.php?eq=%28%5CDelta%20P_t%20%3D%200%29&bc=White&fc=Black&im=jpg&fs=12&ff=fourier&edit=0" align="center" border="0" alt="(\Delta P_t = 0)" width="65" height="17" />, thus:
+Ground echoes are generally caused by buildings, roads, or topographic structure near the radar. They are fixed targets ![](http://latex.codecogs.com/gif.latex?%28%5CDelta%20r%20%3D%200%29), and their microphysics don't change over time ![](http://latex.codecogs.com/gif.latex?%28%5CDelta%20P_t%20%3D%200%29), thus:
 
-<img src="http://www.sciweavers.org/tex2img.php?eq=%20%5CDelta%20Z_c%20%3D%20%5CDelta%20C&bc=White&fc=Black&im=jpg&fs=12&ff=fourier&edit=0" align="center" border="0" alt=" \Delta Z_c = \Delta C" width="71" height="17" />
-
+![](http://latex.codecogs.com/gif.latex?%5CDelta%20Z%20%3D%20%5CDelta%20C)
 So any change in the ground clutter reflectivity is due to a change in the radar calibration.
 
 ## Usage
