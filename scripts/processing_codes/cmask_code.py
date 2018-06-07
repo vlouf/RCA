@@ -61,11 +61,16 @@ def get_clutter_position(radar,
         return None
 
     # Get reflectivity and RHOHV
-    try:
-        total_power = radar.fields[dbz_name]['data'][rslice].filled(np.NaN)
-    except KeyError:
-        print("Wrong DBZ field names provided. The field names in radar files are:")
-        print(radar.fields.keys())
+    total_power = None
+    for dname in [dbz_name, 'reflectivity', 'DBZH', 'DBZ']:
+        try:
+            total_power = radar.fields[dname]['data'][rslice].filled(np.NaN)
+            break
+        except KeyError:
+            print("Wrong DBZ field names provided. The field names in radar files are:")
+            print(radar.fields.keys())
+            continue
+    if total_power is None:
         raise KeyError("Wrong field name provided")
 
     try:
