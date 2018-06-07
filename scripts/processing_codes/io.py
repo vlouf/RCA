@@ -52,8 +52,19 @@ def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
     azi = radar.azimuth['data'][rslice]
 
     # Get reflectivity
+    reflec = None
+    for dname in [dbz_name, 'reflectivity', 'DBZ', 'DBZH']:
+        try:
+            reflec = radar.fields[dname]['data'][rslice].filled(np.NaN)
+            break
+        except KeyError:        
+            continue
+
+    if reflec is None:
+        print("Wrong RHOHV/DBZ field names provided. The field names in radar files are:")
+        raise KeyError("Wrong field name provided")
+
     try:
-        reflec = radar.fields[dbz_name]['data'][rslice].filled(np.NaN)
         if zdr_name is not None:
             zdr = radar.fields[zdr_name]['data'][rslice].filled(np.NaN)
         else:
