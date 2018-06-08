@@ -36,7 +36,7 @@ def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
     file_extension = os.path.splitext(infile)[-1]
     try:
         if file_extension == ".h5" or file_extension == ".H5":
-            radar = pyart.aux_io.read_odim_h5(infile)
+            radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True)
         else:
             radar = pyart.io.read(infile)
     except Exception:
