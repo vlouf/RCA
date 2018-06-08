@@ -17,6 +17,81 @@ def _jit_find_clut_pos(rrange, theta, range_list, azi_list):
         frequency[apos, rpos] += 1
     return frequency
 
+def get_clutter_percentile(radar,
+                         dbz_name="DBZ",
+                         rhohv_name="RHOHV",
+                         refl_thrld=45,
+                         rhohv_thrld=0.6,
+                         maxrange=10e3,
+                         perctile=95):
+    """
+    Get percentile of non meteorological echoes.
+
+    Parameters:
+    ===========
+        radar: struct
+            Py-ART radar structure.
+        dbz_name: str
+            Reflectivity field name.
+        rhohv_name: str
+            Cross-correlation field name.
+        refl_thrld: float
+            Minimum reflectivity threshold (in dBZ)
+        rhohv_thrld: float
+            Maximum cross correlation threshold below which echoes
+            are not from a meteorological source.
+        maxrange: int
+            Maximum range (in meters)
+
+    Returns:
+    ========
+        clut_perctile: percentile value of clutter
+    """
+    # Extract first elevation only
+    rslice = radar.get_slice(0)
+    # Extract range/azimuth
+    r = radar.range['data'].astype(int)
+    azi = radar.azimuth['data'][rslice]
+    # Check azimuth field.
+    if len(azi) <= 60:
+        print("Invalid azimuth field")
+        return None
+
+    # Get reflectivity and RHOHV
+    total_power = None
+    for dname in [dbz_name, 'reflectivity', 'DBZH', 'DBZ']:
+        try:
+            total_power = radar.fields[dname]['data'][rslice].filled(np.NaN)
+            break
+        except KeyError:
+            print("Wrong DBZ field names provided. The field names in radar files are:")
+            print(radar.fields.keys())
+            continue
+    if total_power is None:
+        raise KeyError("Wrong field name provided")
+
+    try:
+        cross_correlation_ratio = radar.fields[rhohv_name]['data'][rslice].filled(np.NaN)
+    except KeyError:
+        # print("Wrong (or absent) RHOHV field names provided. Using statistics to compute ground clutter.")
+        cross_correlation_ratio = np.zeros_like(total_power)
+        #if refl_thrld < 50:
+        #    refl_thrld = 50
+
+    # Removing every echoes that are above RHOHV threshold, below DBZ threshold and above maximum range.
+    clut = total_power
+    #(cross_correlation_ratio > rhohv_thrld) |
+    clut[(cross_correlation_ratio > rhohv_thrld) | (total_power < refl_thrld)] = np.NaN
+    clut[:, r > maxrange] = np.NaN
+    
+    # precentile of clutter values
+    valid_clut    = clut[~np.isnan(clut)]
+    clut_perctile = np.percentile(valid_clut.flatten(), perctile)
+
+    return clut_perctile
+
+
+
 
 def get_clutter_position(radar,
                          dbz_name="DBZ",
@@ -78,14 +153,15 @@ def get_clutter_position(radar,
     except KeyError:
         # print("Wrong (or absent) RHOHV field names provided. Using statistics to compute ground clutter.")
         cross_correlation_ratio = np.zeros_like(total_power)
-        if refl_thrld < 50:
-            refl_thrld = 50
+        #if refl_thrld < 50:
+        #    refl_thrld = 50
 
     # Removing every echoes that are above RHOHV threshold, below DBZ threshold and above maximum range.
     clut = total_power
+    #(cross_correlation_ratio > rhohv_thrld) |
     clut[(cross_correlation_ratio > rhohv_thrld) | (total_power < refl_thrld)] = np.NaN
     clut[:, r > maxrange] = np.NaN
-
+    
     # Position of remaining echoes
     posa, posr = np.where(~np.isnan(clut))
 

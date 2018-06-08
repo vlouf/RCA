@@ -167,27 +167,28 @@ def multproc_buffer_create_clut_map(infile):
     file_extension = os.path.splitext(infile)[-1]
     try:
         if file_extension == ".h5" or file_extension == ".H5":
-            radar = pyart.aux_io.read_odim_h5(infile)
+            radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True)
         else:
             radar = pyart.io.read(infile)
     except Exception:
         print("Could not read input file", os.path.basename(infile))
-        return None, None
+        return None
 
     try:
         print(crayons.green("{} read.".format(infile)))
-        r_clutt, azi_clutt = cmask_code.get_clutter_position(radar,
-                                                             dbz_name=DBZ_FIELD_NAME,
-                                                             rhohv_name=RHOHV_FIELD_NAME,
-                                                             refl_thrld=REFL_THRLD,
-                                                             rhohv_thrld=0.6,
-                                                             maxrange=10e3)
+        perc_clut = cmask_code.get_clutter_percentile(radar,
+                                                     dbz_name=DBZ_FIELD_NAME,
+                                                     rhohv_name=RHOHV_FIELD_NAME,
+                                                     refl_thrld=REFL_THRLD,
+                                                     rhohv_thrld=0.6,
+                                                     maxrange=30e3,
+                                                     perctile=95)
     except Exception:
         print("Problem with this file:", os.path.basename(infile))
         traceback.print_exc()
-        return None, None
+        return None
 
-    return r_clutt, azi_clutt
+    return perc_clut
 
 
 def fun_coach_timing(infile):
@@ -211,7 +212,7 @@ def fun_coach_timing(infile):
         rslt = multproc_buffer_create_clut_map(infile)
     except TimeoutException:
         print(crayons.red("TOOO MUCH TIME TRYING TO READ " + infile))
-        return None, None
+        return None
     else:
         signal.alarm(0)
 
@@ -280,14 +281,14 @@ def main():
 
     print("Non-meteorological echoes extracted.")
     # Unpack multiprocessing rslt.
-    range_tot = np.array([], dtype=int)
-    azi_tot = np.array([])
-    for rslice, azislice in rslt:
-        if rslice is None:
+    perc_clt_list = np.array([])
+    for perc_clt in rslt:
+        if perc_clt is None:
             continue
-        range_tot = np.append(range_tot, rslice)
-        azi_tot = np.append(azi_tot, azislice)
+        perc_clt_list = np.append(perc_clt_list, perc_clt)
 
+    return np.mean(perc_clt_list)
+    
     # Compute frequency map
     clutter_r, clutter_azi, freq = cmask_code.compute_frequency_map(rrange, azimuth, range_tot, azi_tot, nbfile, freq_thrld=FREQ_THRLD)
     print("Clutter frequency map created.")
