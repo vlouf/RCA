@@ -1,8 +1,20 @@
 # Relative Calibration Adjusment technique
 
-This is a ground radar calibration technique using the monitoring of ground clutters.
+## Disclaimer
+
+This dataset is supported by a funding from the U.S. Department of Energy as part of the Atmospheric Radiation Measurement (ARM) Climate Research Facility, an Office of Science user facility.
+
+If you use this dataset to prepare a publication, please consider offering me (Valentin Louf) co-authorship and add the following line in the acknowledgments:
+
+> This work has been supported by the U.S. Department of Energy Atmospheric Systems Research Program through the grant DE-SC0014063.
+
+## Reference
+
+- Louf, V., A. Protat, R. A. Warren, S. M. Collis, D. B. Wolff, S. Raunyiar, C. Jakob, and W. A. Petersen, 2018: An integrated approach to weather radar calibration and monitoring using ground clutter and satellite comparisons. J. Atmos. Ocean. Technol., JTECH-D-18-0007.1, doi:10.1175/JTECH-D-18-0007.1. [http://journals.ametsoc.org/doi/10.1175/JTECH-D-18-0007.1]
 
 ## Theory
+
+This is a ground radar calibration technique using the monitoring of ground clutters.
 
 The radar equation is:
 
