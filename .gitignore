@@ -124,6 +124,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Data directory
+CPOL_rca_and_masks/
+
 # VSCode and notebooks
 .vscode
 .vscode/settings.json
