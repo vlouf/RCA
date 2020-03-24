@@ -1,4 +1,4 @@
-'''
+"""
 Generate clutter mask.
 
 title: cluttermask.py
@@ -6,7 +6,7 @@ author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
 date: 24/03/2020
-'''
+"""
 import gc
 import dask
 import dask.bag as db
@@ -22,7 +22,7 @@ class EmptyFieldError(Exception):
 
 
 def _read_radar(infile, refl_name):
-    '''
+    """
     Read input radar file
 
     Parameters:
@@ -36,7 +36,7 @@ def _read_radar(infile, refl_name):
     ========
     radar: PyART.Radar
         Radar data.
-    '''
+    """
     try:
         radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
     except KeyError:
@@ -46,13 +46,15 @@ def _read_radar(infile, refl_name):
     return radar
 
 
-def clutter_mask(radar_file_list,
-                 refl_name='total_power',
-                 refl_threshold=50,
-                 max_range=20e3,
-                 freq_threshold=50,
-                 use_dask=True):
-    '''
+def clutter_mask(
+    radar_file_list,
+    refl_name="total_power",
+    refl_threshold=50,
+    max_range=20e3,
+    freq_threshold=50,
+    use_dask=True,
+):
+    """
     Extract the clutter and compute the RCA value.
 
     Parameters:
@@ -74,13 +76,14 @@ def clutter_mask(radar_file_list,
     ========
     dset: xr.Dataset
         Clutter mask.
-    '''
+    """
+
     def find_clutter_pos(infile):
         radar = _read_radar(infile, refl_name)
         sl = radar.get_slice(0)
-        r = radar.range['data']
-        azi = np.round(radar.azimuth['data'][sl] % 360).astype(int)
-        refl = radar.fields[refl_name]['data'][sl].filled(np.NaN)
+        r = radar.range["data"]
+        azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
+        refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
 
         R, A = np.meshgrid(r, azi)
 
@@ -112,21 +115,30 @@ def clutter_mask(radar_file_list,
         zmask[idx, apos, rpos] = refl
     zmask = np.ma.masked_invalid(zmask)
 
-    arr = ((~np.ma.masked_less(cmask.sum(axis=0) / 1.44, freq_threshold).mask) &
-           (zmask.mean(axis=0).filled(0) > refl_threshold))
+    arr = (~np.ma.masked_less(cmask.sum(axis=0) / 1.44, freq_threshold).mask) & (
+        zmask.mean(axis=0).filled(0) > refl_threshold
+    )
 
     if np.sum(arr) == 0:
-        raise EmptyFieldError('No Clutter detected')
+        raise EmptyFieldError("No Clutter detected")
 
-    dset = xr.Dataset({'clutter_mask': (('azimuth', 'range'), arr),
-                       'azimuth': (('azimuth'), np.arange(na).astype(np.int16)),
-                       'range': (('range'), np.arange(nr).astype(np.int16))})
+    dset = xr.Dataset(
+        {
+            "clutter_mask": (("azimuth", "range"), arr),
+            "azimuth": (("azimuth"), np.arange(na).astype(np.int16)),
+            "range": (("range"), np.arange(nr).astype(np.int16)),
+        }
+    )
 
     radar = _read_radar(radar_file_list[0], refl_name)
     dset.attrs = radar.metadata
-    dset.range.attrs = {'units': 'km', 'long_name': 'radar_range'}
-    dset.azimuth.attrs = {'units': 'degrees', 'long_name': 'radar_azimuth'}
-    dset.clutter_mask.attrs = {'units': '', 'long_name': 'clutter_mask', 'description':'Clutter position in a coarse polar grid.'}
+    dset.range.attrs = {"units": "km", "long_name": "radar_range"}
+    dset.azimuth.attrs = {"units": "degrees", "long_name": "radar_azimuth"}
+    dset.clutter_mask.attrs = {
+        "units": "",
+        "long_name": "clutter_mask",
+        "description": "Clutter position in a coarse polar grid.",
+    }
 
     del radar
     return dset
