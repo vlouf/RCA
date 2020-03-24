@@ -1,3 +1,12 @@
+'''
+Generate clutter mask.
+
+title: cluttermask.py
+author: Valentin Louf
+email: valentin.louf@bom.gov.au
+institution: Monash University and Bureau of Meteorology
+date: 24/03/2020
+'''
 import gc
 import dask
 import dask.bag as db
@@ -13,6 +22,21 @@ class EmptyFieldError(Exception):
 
 
 def _read_radar(infile, refl_name):
+    '''
+    Read input radar file
+
+    Parameters:
+    ===========
+    radar_file_list: str
+        List of radar files.
+    refl_name: str
+        Uncorrected reflectivity field name.
+
+    Returns:
+    ========
+    radar: PyART.Radar
+        Radar data.
+    '''
     try:
         radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
     except KeyError:
@@ -32,7 +56,7 @@ def clutter_mask(radar_file_list,
     Extract the clutter and compute the RCA value.
 
     Parameters:
-    -----------
+    ===========
     radar_file_list: str
         List of radar files.
     refl_name: str
@@ -47,7 +71,7 @@ def clutter_mask(radar_file_list,
         Use dask multiprocessing to parse the input list of radar files.
 
     Returns:
-    --------
+    ========
     dset: xr.Dataset
         Clutter mask.
     '''
