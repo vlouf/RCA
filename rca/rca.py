@@ -40,8 +40,8 @@ def _read_radar(infile, refl_name):
     return radar
 
 
-def extract_clutter(infile, mask_file, refl_name='total_power'):
-    '''
+def extract_clutter(infile, mask_file, refl_name="total_power"):
+    """
     Extract the clutter and compute the RCA value.
     
     Parameters:
@@ -59,41 +59,41 @@ def extract_clutter(infile, mask_file, refl_name='total_power'):
         Datetime of infile
     rca: float
         95th percentile of the clutter reflectivity.
-    '''
+    """
     # Radar data.
     radar = _read_radar(infile, refl_name)
-        
-    dtime = netCDF4.num2date(radar.time['data'][0], radar.time['units'])
-    
+
+    dtime = netCDF4.num2date(radar.time["data"][0], radar.time["units"])
+
     sl = radar.get_slice(0)
-    r = radar.range['data']    
-    azi = radar.azimuth['data'][sl]        
+    r = radar.range["data"]
+    azi = radar.azimuth["data"][sl]
     try:
-        refl = radar.fields[refl_name]['data'][sl][:, r < 20e3].filled(np.NaN)
+        refl = radar.fields[refl_name]["data"][sl][:, r < 20e3].filled(np.NaN)
     except AttributeError:
-        refl = radar.fields[refl_name]['data'][sl][:, r < 20e3]
+        refl = radar.fields[refl_name]["data"][sl][:, r < 20e3]
     zclutter = np.zeros_like(refl) + np.NaN
-    
-    r = r[r< 20e3]
-    R, A = np.meshgrid(r, azi)        
+
+    r = r[r < 20e3]
+    R, A = np.meshgrid(r, azi)
     R = (R // 1000).astype(int)
     A = (np.round(A) % 360).astype(int)
-    
+
     # Mask.
     maskset = xr.open_dataset(mask_file)
     RC, AC = np.meshgrid(maskset.range, maskset.azimuth)
-    
+
     npos = np.where(maskset.clutter_mask.values)
     for ir, ia in zip(RC[npos], AC[npos]):
         pos = (R == ir) & (A == ia)
         zclutter[pos] = refl[pos]
-    
+
     try:
         zclutter = zclutter[~np.isnan(zclutter)]
         rca = np.percentile(zclutter, 95)
     except IndexError:
         # Empty array full of NaN.
-        raise ValueError('All clutter is NaN.')
-    
+        raise ValueError("All clutter is NaN.")
+
     del radar
     return dtime, rca
