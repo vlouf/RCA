@@ -48,21 +48,23 @@ def make_composite_mask(date, timedelta=7, indir='compomask', prefix='cpol_cmask
 
     Parameters:
     -----------
-    infile: str
-        Input radar file.
-    clutter_mask: numpy.array(float)
-        Clutter mask (360 deg x 20 km)
-    refl_name: str
-        Uncorrected reflectivity field name.
+    date: Timestamp
+        Date of processing
+    timedelta: int
+        Time delta for the cp,[psote]
+    indir: str
+        Where clutter mask are stored
+    prefix: str
+        What is the clutter mask file prefix.
+    freq_thrld: float
+        Frequency threshold (0 < f < 1).
 
     Returns:
     --------
-    dtime: np.datetime64
-        Datetime of infile
-    rca: float
-        95th percentile of the clutter reflectivity.
+    mask: ndarray
+        Clutter mask
     '''
-    def get_mask_list(date, timedelta, indir):
+    def get_mask_list(date, timedelta, indir, prefix):
         drange = pd.date_range(date - pd.Timedelta(f'{timedelta}D'), date)
         flist = []
         for day in drange:
@@ -70,11 +72,11 @@ def make_composite_mask(date, timedelta=7, indir='compomask', prefix='cpol_cmask
             if os.path.isfile(file):
                 flist.append(file)
         return flist
-    
-    flist = get_mask_list(date, timedelta, indir)
+
+    flist = get_mask_list(date, timedelta, indir, prefix)
     if len(flist) == 1:
         return xr.open_dataset(flist[0]).clutter_mask.values > freq_thrld
-    
+
     cmask = [xr.open_dataset(f).clutter_mask.values for f in flist]
     cmaskarr = np.concatenate(cmask, axis=np.newaxis).reshape((len(flist), 360, 20))
     compo_freq = cmaskarr.sum(axis=0) / len(flist)
