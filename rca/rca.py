@@ -5,13 +5,15 @@ title: rca.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 24/03/2020
+date: 27/03/2020
 """
 import gc
+import os
 
 import pyart
 import netCDF4
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 
@@ -38,6 +40,45 @@ def _read_radar(infile, refl_name):
         radar = pyart.io.read(infile, include_fields=[refl_name])
 
     return radar
+
+
+def make_composite_mask(date, timedelta=7, indir='compomask', prefix='cpol_cmask_', freq_thrld=0.9):
+    '''
+    Extract the clutter and compute the RCA value.
+
+    Parameters:
+    -----------
+    infile: str
+        Input radar file.
+    clutter_mask: numpy.array(float)
+        Clutter mask (360 deg x 20 km)
+    refl_name: str
+        Uncorrected reflectivity field name.
+
+    Returns:
+    --------
+    dtime: np.datetime64
+        Datetime of infile
+    rca: float
+        95th percentile of the clutter reflectivity.
+    '''
+    def get_mask_list(date, timedelta, indir):
+        drange = pd.date_range(date - pd.Timedelta(f'{timedelta}D'), date)
+        flist = []
+        for day in drange:
+            file = os.path.join(indir, prefix + '{}.nc'.format(day.strftime('%Y%m%d')))
+            if os.path.isfile(file):
+                flist.append(file)
+        return flist
+    
+    flist = get_mask_list(date, timedelta, indir)
+    if len(flist) == 1:
+        return xr.open_dataset(flist[0]).clutter_mask.values > freq_thrld
+    
+    cmask = [xr.open_dataset(f).clutter_mask.values for f in flist]
+    cmaskarr = np.concatenate(cmask, axis=np.newaxis).reshape((len(flist), 360, 20))
+    compo_freq = cmaskarr.sum(axis=0) / len(flist)
+    return compo_freq > freq_thrld
 
 
 def extract_clutter(infile, clutter_mask, refl_name='total_power'):
