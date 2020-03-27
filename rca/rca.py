@@ -42,8 +42,8 @@ def _read_radar(infile, refl_name):
     return radar
 
 
-def make_composite_mask(date, timedelta=7, indir='compomask', prefix='cpol_cmask_', freq_thrld=0.9):
-    '''
+def make_composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", freq_thrld=0.9):
+    """
     Extract the clutter and compute the RCA value.
 
     Parameters:
@@ -51,7 +51,7 @@ def make_composite_mask(date, timedelta=7, indir='compomask', prefix='cpol_cmask
     date: Timestamp
         Date of processing
     timedelta: int
-        Time delta for the cp,[psote]
+        Time delta for the composite.
     indir: str
         Where clutter mask are stored
     prefix: str
@@ -63,12 +63,13 @@ def make_composite_mask(date, timedelta=7, indir='compomask', prefix='cpol_cmask
     --------
     mask: ndarray
         Clutter mask
-    '''
+    """
+
     def get_mask_list(date, timedelta, indir, prefix):
-        drange = pd.date_range(date - pd.Timedelta(f'{timedelta}D'), date)
+        drange = pd.date_range(date - pd.Timedelta(f"{timedelta}D"), date)
         flist = []
         for day in drange:
-            file = os.path.join(indir, prefix + '{}.nc'.format(day.strftime('%Y%m%d')))
+            file = os.path.join(indir, prefix + "{}.nc".format(day.strftime("%Y%m%d")))
             if os.path.isfile(file):
                 flist.append(file)
         return flist
@@ -83,8 +84,8 @@ def make_composite_mask(date, timedelta=7, indir='compomask', prefix='cpol_cmask
     return compo_freq > freq_thrld
 
 
-def extract_clutter(infile, clutter_mask, refl_name='total_power'):
-    '''
+def extract_clutter(infile, clutter_mask, refl_name="total_power"):
+    """
     Extract the clutter and compute the RCA value.
 
     Parameters:
@@ -102,22 +103,22 @@ def extract_clutter(infile, clutter_mask, refl_name='total_power'):
         Datetime of infile
     rca: float
         95th percentile of the clutter reflectivity.
-    '''
+    """
     # Radar data.
     radar = _read_radar(infile, refl_name)
 
-    dtime = netCDF4.num2date(radar.time['data'][0], radar.time['units'])
+    dtime = netCDF4.num2date(radar.time["data"][0], radar.time["units"])
 
     sl = radar.get_slice(0)
-    r = radar.range['data']
-    azi = radar.azimuth['data'][sl]
+    r = radar.range["data"]
+    azi = radar.azimuth["data"][sl]
     try:
-        refl = radar.fields[refl_name]['data'][sl][:, r < 20e3].filled(np.NaN)
+        refl = radar.fields[refl_name]["data"][sl][:, r < 20e3].filled(np.NaN)
     except AttributeError:
-        refl = radar.fields[refl_name]['data'][sl][:, r < 20e3]
+        refl = radar.fields[refl_name]["data"][sl][:, r < 20e3]
     zclutter = np.zeros_like(refl) + np.NaN
 
-    r = r[r< 20e3]
+    r = r[r < 20e3]
     R, A = np.meshgrid(r, azi)
     R = (R // 1000).astype(int)
     A = (np.round(A) % 360).astype(int)
@@ -135,7 +136,7 @@ def extract_clutter(infile, clutter_mask, refl_name='total_power'):
         rca = np.percentile(zclutter, 95)
     except IndexError:
         # Empty array full of NaN.
-        raise ValueError('All clutter is NaN.')
+        raise ValueError("All clutter is NaN.")
 
     del radar
     return dtime, rca
