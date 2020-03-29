@@ -31,6 +31,8 @@ import numpy as np
 import pandas as pd
 import dask.bag as db
 
+from rca import clutter_mask
+
 
 # def buffer(infile):
 #     '''
@@ -159,6 +161,45 @@ def remove(flist):
 
 #     return None
 
+def gen_cmask(radar_file_list, date):
+    '''
+    Generate the clutter mask for a given day and save the clutter mask as a
+    netCDF.
+
+    Parameters:
+    ===========
+    radar_file_list: list
+        List radar files for the given date.
+    date: datetime
+        Date.
+
+    Returns:
+    ========
+    file_prefix: str
+        Prefix given to filename.
+
+    '''
+    file_prefix = f'{RID}_'
+    datestr = date.strftime('%Y%m%d')
+
+    outpath = os.path.join(OUTPATH, 'cmasks', f'{RID}')
+    mkdir(outpath)
+    outputfile = os.path.join(outpath, file_prefix + f'{datestr}.nc')
+    
+    if os.path.isfile(outputfile):
+        print('Clutter masks already exists. Doing nothing.')
+        return file_prefix
+
+    cmask = clutter_mask(radar_file_list,
+                         refl_name="total_power",
+                         refl_threshold=50,
+                         max_range=20e3,
+                         freq_threshold=50,
+                         use_dask=True)
+    cmask.to_netcdf(outputfile)
+
+    return file_prefix, outpath
+
 
 def main(date_range):
     for date in date_range:
@@ -200,7 +241,7 @@ if __name__ == "__main__":
         "-o",
         "--output",
         dest="output",
-        default='/scratch/kl02/vhl548/solar_output/',
+        default='/scratch/kl02/vhl548/rca_output/',
         type=str,
         help="Output directory")
     parser.add_argument(
@@ -251,4 +292,3 @@ if __name__ == "__main__":
         main(date_range)
     tock = time.time()
     print(crayons.magenta(f'Process finished in {tock - tick:0.2}s.'))
-    
