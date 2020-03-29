@@ -5,7 +5,7 @@ title: rca.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 27/03/2020
+date: 30/03/2020
 """
 import gc
 import os
@@ -42,9 +42,9 @@ def _read_radar(infile, refl_name):
     return radar
 
 
-def make_composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", freq_thrld=0.9):
+def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", freq_thrld=0.9):
     """
-    Extract the clutter and compute the RCA value.
+    Generate composite clutter mask.
 
     Parameters:
     -----------
@@ -82,6 +82,33 @@ def make_composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask
     cmaskarr = np.concatenate(cmask, axis=np.newaxis).reshape((len(flist), 360, 20))
     compo_freq = cmaskarr.sum(axis=0) / len(flist)
     return compo_freq > freq_thrld
+
+
+def single_mask(date, indir="compomask", prefix="cpol_cmask_"):
+    """
+    Generate clutter mask.
+
+    Parameters:
+    -----------
+    date: Timestamp
+        Date of processing
+    indir: str
+        Where clutter mask are stored
+    prefix: str
+        What is the clutter mask file prefix.
+
+    Returns:
+    --------
+    mask: ndarray
+        Clutter mask
+    """
+    file = os.path.join(indir, prefix + "{}.nc".format(date.strftime("%Y%m%d")))
+    if not os.path.isfile(file):
+        file = sorted(glob.glob(os.path.join(indir, '*.nc')))[-1]
+    
+    print(f'Using emergency mask {file}')
+    cmask = xr.open_dataset(file).clutter_mask.values
+    return cmask
 
 
 def extract_clutter(infile, clutter_mask, refl_name="total_power"):
