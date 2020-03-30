@@ -79,7 +79,7 @@ def check_reflectivity(infile):
     try:
         radar.fields[REFL_NAME]
     except KeyError:
-        print(crayons.red(f"{infile} does not contain {REFL_NAME} fields."))
+        print(crayons.red(f"{os.path.basename(infile)} does not contain {REFL_NAME} field."))
         is_good = False
 
     del radar
@@ -241,7 +241,7 @@ def main(date_range):
         # Get zip archive for given radar RID and date.
         zipfile = get_radar_archive_file(date)
         if zipfile is None:
-            print(crayons.red(f'No file found for date {date}.'))
+            print(crayons.yellow(f'No file found for radar {RID} at date {date}.'))
             continue
 
         # Unzip data/
@@ -282,7 +282,7 @@ def main(date_range):
                 print(crayons.yellow(f"No data for radar {RID} for {date}."))
 
         # Removing unzipped files, collecting memory garbage.
-        remove(namelist)        
+        remove(namelist)
         gc.collect()
 
     return None
@@ -308,14 +308,14 @@ if __name__ == "__main__":
     parser.add_argument(
         '-s',
         '--start-date',
-        dest='start_date',        
+        dest='start_date',
         type=str,
         help='Starting date.',
         required=True)
     parser.add_argument(
         '-e',
         '--end-date',
-        dest='end_date',        
+        dest='end_date',
         type=str,
         help='Ending date.',
         required=True)
@@ -340,12 +340,10 @@ if __name__ == "__main__":
         sys.exit()
 
     try:
-        start = datetime.datetime.strptime(START_DATE, "%Y%m%d")
-        end = datetime.datetime.strptime(END_DATE, "%Y%m%d")
-        if start > end:
+        date_range = pd.date_range(START_DATE, END_DATE)
+        if len(date_range):
             parser.error('End date older than start date.')
-        date_range = [start + datetime.timedelta(days=x) for x in range(0, (end - start).days + 1, )]
-    except ValueError:
+    except Exception:
         parser.error('Invalid dates.')
         sys.exit()
 
@@ -358,4 +356,4 @@ if __name__ == "__main__":
         warnings.simplefilter('ignore')
         main(date_range)
     tock = time.time()
-    print(crayons.magenta(f'Process finished in {tock - tick:0.2}s.'))
+    print(crayons.magenta(f'Process finished in {tock - tick:0.6}s.'))
