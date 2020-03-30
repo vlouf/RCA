@@ -237,6 +237,7 @@ def main(date_range):
     5/ Save data for the given date.
     6/ Remove unzipped file and go to next iteration.
     '''
+    prefix = f'{RID}_'
     for date in date_range:
         # Get zip archive for given radar RID and date.
         zipfile = get_radar_archive_file(date)
@@ -250,7 +251,7 @@ def main(date_range):
             print(crayons.yellow(f'{len(namelist)} files to process for {date}.'))
 
             # Generate clutter mask for the given date.
-            outpath = gen_cmask(namelist, date, file_prefix=f'{RID}_')
+            outpath = gen_cmask(namelist, date, file_prefix=prefix)
 
             # Generate composite mask.
             try:
