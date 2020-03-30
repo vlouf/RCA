@@ -38,10 +38,20 @@ def _read_radar(infile, refl_name):
         Radar data.
     """
     try:
-        radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
-    except KeyError:
-        gc.collect()  # Close file if stayed opened.
-        radar = pyart.io.read(infile, include_fields=[refl_name])
+        if infile.lower().endswith(('.h5', '.hdf', '.hdf5')):
+            radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
+        else:
+            radar = pyart.io.read(infile, include_fields=[refl_name])
+    except Exception:
+        print('!!!! Problem with {infile} !!!!')
+        raise
+
+    try:
+        radar.fields[refl_name]
+    except KeyError:        
+        print('!!!! Problem with {infile} - No {refl_name} field does not exist. !!!!')
+        del radar
+        raise 
 
     return radar
 

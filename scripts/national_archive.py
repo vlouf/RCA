@@ -76,7 +76,12 @@ def check_reflectivity(infile):
     Check if the Radar file contains the uncorrected reflectivity field.
     '''
     is_good = True
-    radar = cluttercal.cluttercal._read_radar(infile, refl_name=REFL_NAME)
+    try:
+        radar = cluttercal.cluttercal._read_radar(infile, refl_name=REFL_NAME)
+    except Exception:
+        traceback.print_exc()
+        return False
+
     try:
         radar.fields[REFL_NAME]
     except KeyError:
@@ -203,7 +208,7 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
     ========
     outpath: str
         Output directory for the clutter masks.
-    '''    
+    '''
     if file_prefix is None:
         file_prefix = f'{RID}_'
     datestr = date.strftime('%Y%m%d')
@@ -225,6 +230,8 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
             cmask.to_netcdf(outputfile)
         except EmptyFieldError:
             print(crayons.red(f'!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!'))
+            pass
+
     return outpath
 
 
