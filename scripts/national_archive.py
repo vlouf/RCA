@@ -134,32 +134,35 @@ def remove(flist):
     return None
 
 
-# def savedata(rslt_list, path):
-#     '''
-#     Save the output data into a CSV file compatible with pandas.
+def savedata(df, date, path):
+    '''
+    Save the output data into a CSV file compatible with pandas.
 
-#     Parameters:
-#     ===========
-#     rslt_list: list
-#         List of solar calibration results for the given date.
-#     path: str
-#         Output directory.
-#     '''
-#     df = pd.concat(rslt_list).reset_index()
-#     dtime = df.time[0].strftime('%Y%m%d')
-#     year = df.time[0].strftime('%Y')
+    Parameters:
+    ===========
+    df: pd.Dataframe
+        RCA timeserie to be saved.
+    date:
+        Date of processing.
+    path: str
+        Output directory.
+    '''
+    datestr = date.strftime('%Y%m%d')
 
-#     path = os.path.join(path, RID)
-#     mkdir(path)
-#     path = os.path.join(path, year)
-#     mkdir(path)
+    path = os.path.join(path, 'rca')
+    mkdir(path)
+    path = os.path.join(path, RID)
+    mkdir(path)
+    path = os.path.join(path, str(date.year))
+    mkdir(path)
 
-#     outfilename = os.path.join(path, f'suncal.{RID}.{dtime}.csv')
-#     df.to_csv(outfilename)
-#     print(crayons.green(f'{len(df)} solar hits on {dtime}.'))
-#     print(crayons.green(f'Results saved in {outfilename}.'))
+    outfilename = os.path.join(path, f'rca.{RID}.{datestr}.csv')
+    df.to_csv(outfilename)
+    print(crayons.green(f'{len(df)} solar hits on {datestr}.'))
+    print(crayons.green(f'Results saved in {outfilename}.'))
 
-#     return None
+    return None
+
 
 def gen_cmask(radar_file_list, date):
     '''
@@ -232,8 +235,14 @@ def main(date_range):
         rslt = [r for r in rslt if r is not None]
         if len(rslt) != 0:
             ttmp, rtmp = zip(*rslt)
-            rca = np.append(rca, np.array(rtmp))
-            dtime = np.append(dtime, np.array(ttmp, dtype='datetime64'))
+            rca = np.array(rtmp)
+            dtime = np.array(ttmp, dtype='datetime64')
+
+            if len(rca) == 0:
+                print(crayons.red(f'No results for radar {RID}.'))
+            else:
+                df = pd.DataFrame({'rca': rca}, index=dtime)
+                savedata(df, date, path=OUTPATH)
         else:
             print(crayons.red(f'No results for date {date}.'))
 
@@ -241,12 +250,6 @@ def main(date_range):
         remove(namelist)
         del bag
         gc.collect()
-
-    if len(rca) == 0:
-        print(crayons.red(f'No results for radar {RID}.'))
-    else:
-        df = pd.DataFrame({'rca': rca}, index=dtime)
-        savedata(df, path=OUTPATH)
 
     return None
 
