@@ -76,12 +76,17 @@ def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", f
 
     flist = get_mask_list(date, timedelta, indir, prefix)
     if len(flist) == 1:
-        return xr.open_dataset(flist[0]).clutter_mask.values > freq_thrld
+        composite = xr.open_dataset(flist[0]).clutter_mask.values
+    else:
+        cmask = [xr.open_dataset(f).clutter_mask.values for f in flist]
+        cmaskarr = np.concatenate(cmask, axis=np.newaxis).reshape((len(flist), 360, 20))
+        compo_freq = cmaskarr.sum(axis=0) / len(flist)
+        composite = compo_freq > freq_thrld
+        if np.sum(composite) == 0:
+            print(f'BAD COMPOSITE FOR {date}')
+            composite = compo_freq != 0
 
-    cmask = [xr.open_dataset(f).clutter_mask.values for f in flist]
-    cmaskarr = np.concatenate(cmask, axis=np.newaxis).reshape((len(flist), 360, 20))
-    compo_freq = cmaskarr.sum(axis=0) / len(flist)
-    return compo_freq > freq_thrld
+    return composite
 
 
 def single_mask(date, indir="compomask", prefix="cpol_cmask_"):
@@ -105,7 +110,7 @@ def single_mask(date, indir="compomask", prefix="cpol_cmask_"):
     file = os.path.join(indir, prefix + "{}.nc".format(date.strftime("%Y%m%d")))
     if not os.path.isfile(file):
         file = sorted(glob.glob(os.path.join(indir, '*.nc')))[-1]
-    
+
     print(f'Using emergency mask {file}')
     cmask = xr.open_dataset(file).clutter_mask.values
     return cmask
