@@ -70,6 +70,22 @@ def check_rid():
     return os.path.exists(indir)
 
 
+def check_reflectivity(infile):
+    '''
+    Check if the Radar file contains the uncorrected reflectivity field.
+    '''
+    is_good = True
+    radar = cluttercal.cluttercal._read_radar(infile, refl_name=REFL_NAME)
+    try:
+        radar.fields[REFL_NAME]
+    except KeyError:
+        print(crayons.red(f"{infile} does not contain {REFL_NAME} fields."))
+        is_good = False
+
+    del radar
+    return is_good
+
+
 def extract_zip(inzip, path):
     '''
     Extract content of a zipfile inside a given directory.
@@ -230,43 +246,43 @@ def main(date_range):
 
         # Unzip data/
         namelist = extract_zip(zipfile, path=ZIPDIR)
-        print(crayons.yellow(f'{len(namelist)} files to process for {date}.'))
+        if check_reflectivity(namelist[0]):
+            print(crayons.yellow(f'{len(namelist)} files to process for {date}.'))
 
-        # Generate clutter mask for the given date.
-        prefix, outpath = gen_cmask(namelist, date)
+            # Generate clutter mask for the given date.
+            prefix, outpath = gen_cmask(namelist, date)
 
-        # Generate composite mask.
-        try:
-            cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=prefix)
-        except ValueError:
-            cmask = cluttercal.single_mask(date, indir=outpath, prefix=prefix)
+            # Generate composite mask.
+            try:
+                cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=prefix)
+            except ValueError:
+                cmask = cluttercal.single_mask(date, indir=outpath, prefix=prefix)
 
-        # Extract the clutter reflectivity for the given date.
-        arglist = [(f, cmask) for f in namelist]
-        bag = db.from_sequence(arglist).starmap(buffer)
-        rslt = bag.compute()
+            # Extract the clutter reflectivity for the given date.
+            arglist = [(f, cmask) for f in namelist]
+            bag = db.from_sequence(arglist).starmap(buffer)
+            rslt = bag.compute()
 
-        saved = False
-        if rslt is not None:
-            rslt = [r for r in rslt if r is not None]
-            if len(rslt) != 0:
-                ttmp, rtmp = zip(*rslt)
-                rca = np.array(rtmp)
-                dtime = np.array(ttmp, dtype='datetime64')
+            saved = False
+            if rslt is not None:
+                rslt = [r for r in rslt if r is not None]
+                if len(rslt) != 0:
+                    ttmp, rtmp = zip(*rslt)
+                    rca = np.array(rtmp)
+                    dtime = np.array(ttmp, dtype='datetime64')
 
-                if len(rca) != 0:
-                    df = pd.DataFrame({'rca': rca}, index=dtime)
-                    savedata(df, date, path=OUTPATH)
-                    saved = True
+                    if len(rca) != 0:
+                        df = pd.DataFrame({'rca': rca}, index=dtime)
+                        savedata(df, date, path=OUTPATH)
+                        saved = True
 
-        if saved:
-            print(crayons.green(f"Radar {RID} processed and RCA saved."))
-        else:
-            print(crayons.red(f"No data for radar {RID} for {date}."))
+            if saved:
+                print(crayons.green(f"Radar {RID} processed and RCA saved."))
+            else:
+                print(crayons.yellow(f"No data for radar {RID} for {date}."))
 
         # Removing unzipped files, collecting memory garbage.
-        remove(namelist)
-        del bag
+        remove(namelist)        
         gc.collect()
 
     return None
@@ -292,25 +308,31 @@ if __name__ == "__main__":
     parser.add_argument(
         '-s',
         '--start-date',
-        dest='start_date',
-        default=None,
+        dest='start_date',        
         type=str,
         help='Starting date.',
         required=True)
     parser.add_argument(
         '-e',
         '--end-date',
-        dest='end_date',
-        default=None,
+        dest='end_date',        
         type=str,
         help='Ending date.',
         required=True)
+    parser.add_argument(
+        "-n",
+        "--name-dbz",
+        dest="refl_name",
+        type=str,
+        default='total_power',
+        help="Radar uncorrected reflectivity name.")
 
     args = parser.parse_args()
     RID = f"{args.rid:02}"
     START_DATE = args.start_date
     END_DATE = args.end_date
     OUTPATH = args.output
+    REFL_NAME = args.refl_name
     ZIPDIR = '/scratch/kl02/vhl548/unzipdir/'
 
     if not check_rid():
@@ -327,7 +349,7 @@ if __name__ == "__main__":
         parser.error('Invalid dates.')
         sys.exit()
 
-    print(crayons.green(f'Processing sun calibration for radar {RID}.'))
+    print(crayons.green(f'RCA processing for radar {RID}.'))
     print(crayons.green(f'Between {START_DATE} and {END_DATE}.'))
     print(crayons.green(f'Data will be saved in {OUTPATH}.'))
 
