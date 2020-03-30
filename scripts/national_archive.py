@@ -31,29 +31,33 @@ import numpy as np
 import pandas as pd
 import dask.bag as db
 
-import rca
+import cluttercal
 
 
-# def buffer(infile):
-#     '''
-#     Buffer function to catch and kill errors about missing Sun hit.
+def buffer(infile, cmask):
+    '''
+    Buffer function to catch and kill errors about missing Sun hit.
 
-#     Parameters:
-#     ===========
-#     infile: str
-#         Input radar file.
+    Parameters:
+    ===========
+    infile: str
+        Input radar file.
 
-#     Returns:
-#     ========
-#     rslt: pd.DataFrame
-#         Pandas dataframe with the results from the solar calibration code.
-#     '''
-#     try:
-#         rslt = suncal.sunpos_reflectivity(infile)
-#     except SunNotFoundError:
-#         return None
-
-#     return rslt
+    Returns:
+    ========
+    rslt: pd.DataFrame
+        Pandas dataframe with the results from the solar calibration code.
+    '''
+    try:
+        dtime, rca = cluttercal.extract_clutter(infile, cmask, refl_name='total_power')
+    except ValueError:
+        return None
+    except Exception:
+        print(infile)
+        traceback.print_exc()
+        return None
+    
+    return dtime, rca
 
 
 def check_rid():
@@ -194,12 +198,12 @@ def gen_cmask(radar_file_list, date):
         print('Clutter masks already exists. Doing nothing.')
         return file_prefix
 
-    cmask = clutter_mask(radar_file_list,
-                         refl_name="total_power",
-                         refl_threshold=50,
-                         max_range=20e3,
-                         freq_threshold=50,
-                         use_dask=True)
+    cmask = cluttercal.clutter_mask(radar_file_list,
+                                    refl_name="total_power",
+                                    refl_threshold=50,
+                                    max_range=20e3,
+                                    freq_threshold=50,
+                                    use_dask=True)
     cmask.to_netcdf(outputfile)
 
     return file_prefix, outpath
@@ -219,9 +223,9 @@ def main(date_range):
         prefix, outpath = gen_cmask(namelist, date)
 
         try:
-            cmask = rca.composite_mask(date, timedelta=7, indir=outpath, prefix=prefix)
+            cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=prefix)
         except ValueError:
-            cmask = rca.single_mask(date, indir=outpath, prefix=prefix)
+            cmask = cluttercal.single_mask(date, indir=outpath, prefix=prefix)
 
         arglist = [(f, cmask) for f in namelist]
 
