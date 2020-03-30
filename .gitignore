@@ -127,6 +127,8 @@ dmypy.json
 # Data directory
 CPOL_rca_and_masks/
 
+*.pbs
+
 # VSCode and notebooks
 .vscode
 .vscode/settings.json
