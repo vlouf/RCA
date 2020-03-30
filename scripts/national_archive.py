@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 import dask.bag as db
 
-from rca import clutter_mask
+import rca
 
 
 # def buffer(infile):
@@ -177,7 +177,8 @@ def gen_cmask(radar_file_list, date):
     ========
     file_prefix: str
         Prefix given to filename.
-
+    outpath: str
+        Output directory for the clutter masks.
     '''
     file_prefix = f'{RID}_'
     datestr = date.strftime('%Y%m%d')
@@ -185,7 +186,7 @@ def gen_cmask(radar_file_list, date):
     outpath = os.path.join(OUTPATH, 'cmasks', f'{RID}')
     mkdir(outpath)
     outputfile = os.path.join(outpath, file_prefix + f'{datestr}.nc')
-    
+
     if os.path.isfile(outputfile):
         print('Clutter masks already exists. Doing nothing.')
         return file_prefix
@@ -210,19 +211,42 @@ def main(date_range):
 
         namelist = extract_zip(zipfile, path=ZIPDIR)
         print(crayons.yellow(f'{len(namelist)} files to process for {date}.'))
-        bag = db.from_sequence(namelist).map(buffer)
-        rslt = bag.compute()
-        rslt = [r for r in rslt if r is not None]
 
-        if len(rslt) == 0:
+        # Generate clutter masks.
+        prefix, outpath = gen_cmask(namelist, date)
+
+        try:
+            cmask = rca.composite_mask(date, timedelta=7, indir=outpath, prefix=prefix)
+        except ValueError:
+            cmask = rca.single_mask(date, indir=outpath, prefix=prefix)
+
+        arglist = [(f, cmask) for f in namelist]
+
+        bag = db.from_sequence(arglist).starmap(buffer)
+        rslt = bag.compute()
+        if rslt is None:
             print(crayons.red(f'No results for date {date}.'))
+            remove(namelist)
+            continue
+
+        rslt = [r for r in rslt if r is not None]
+        if len(rslt) != 0:
+            ttmp, rtmp = zip(*rslt)
+            rca = np.append(rca, np.array(rtmp))
+            dtime = np.append(dtime, np.array(ttmp, dtype='datetime64'))
         else:
-            savedata(rslt, path=OUTPATH)
+            print(crayons.red(f'No results for date {date}.'))
 
         # Removing unzipped files, collecting memory garbage.
         remove(namelist)
         del bag
         gc.collect()
+
+    if len(rca) == 0:
+        print(crayons.red(f'No results for radar {RID}.'))
+    else:
+        df = pd.DataFrame({'rca': rca}, index=dtime)
+        savedata(df, path=OUTPATH)
 
     return None
 
