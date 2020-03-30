@@ -4,7 +4,7 @@ National archive.
 
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @institution: Monash University and Bureau of Meteorology
-@date: 19/03/2020
+@date: 30/03/2020
 
     buffer
     check_rid
@@ -36,7 +36,7 @@ import cluttercal
 
 def buffer(infile, cmask):
     '''
-    Buffer function to catch and kill errors about missing Sun hit.
+    Buffer function to catch and kill errors.
 
     Parameters:
     ===========
@@ -45,8 +45,10 @@ def buffer(infile, cmask):
 
     Returns:
     ========
-    rslt: pd.DataFrame
-        Pandas dataframe with the results from the solar calibration code.
+    dtime: np.datetime64
+        Datetime of infile
+    rca: float
+        95th percentile of the clutter reflectivity.
     '''
     try:
         dtime, rca = cluttercal.extract_clutter(infile, cmask, refl_name='total_power')
@@ -56,7 +58,7 @@ def buffer(infile, cmask):
         print(infile)
         traceback.print_exc()
         return None
-    
+
     return dtime, rca
 
 
@@ -210,45 +212,57 @@ def gen_cmask(radar_file_list, date):
 
 
 def main(date_range):
+    '''
+    Loop over dates:
+    1/ Unzip archives.
+    2/ Generate clutter mask for given date.
+    3/ Generate composite mask.
+    4/ Get the 95th percentile of the clutter reflectivity.
+    5/ Save data for the given date.
+    6/ Remove unzipped file and go to next iteration.
+    '''
     for date in date_range:
+        # Get zip archive for given radar RID and date.
         zipfile = get_radar_archive_file(date)
         if zipfile is None:
             print(crayons.red(f'No file found for date {date}.'))
             continue
 
+        # Unzip data/
         namelist = extract_zip(zipfile, path=ZIPDIR)
         print(crayons.yellow(f'{len(namelist)} files to process for {date}.'))
 
-        # Generate clutter masks.
+        # Generate clutter mask for the given date.
         prefix, outpath = gen_cmask(namelist, date)
 
+        # Generate composite mask.
         try:
             cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=prefix)
         except ValueError:
             cmask = cluttercal.single_mask(date, indir=outpath, prefix=prefix)
 
+        # Extract the clutter reflectivity for the given date.
         arglist = [(f, cmask) for f in namelist]
-
         bag = db.from_sequence(arglist).starmap(buffer)
         rslt = bag.compute()
-        if rslt is None:
-            print(crayons.red(f'No results for date {date}.'))
-            remove(namelist)
-            continue
 
-        rslt = [r for r in rslt if r is not None]
-        if len(rslt) != 0:
-            ttmp, rtmp = zip(*rslt)
-            rca = np.array(rtmp)
-            dtime = np.array(ttmp, dtype='datetime64')
+        saved = False
+        if rslt is not None:
+            rslt = [r for r in rslt if r is not None]
+            if len(rslt) != 0:
+                ttmp, rtmp = zip(*rslt)
+                rca = np.array(rtmp)
+                dtime = np.array(ttmp, dtype='datetime64')
 
-            if len(rca) == 0:
-                print(crayons.red(f'No results for radar {RID}.'))
-            else:
-                df = pd.DataFrame({'rca': rca}, index=dtime)
-                savedata(df, date, path=OUTPATH)
+                if len(rca) != 0:
+                    df = pd.DataFrame({'rca': rca}, index=dtime)
+                    savedata(df, date, path=OUTPATH)
+                    saved = True
+
+        if saved:
+            print(crayons.green(f"Radar {RID} processed and RCA saved."))
         else:
-            print(crayons.red(f'No results for date {date}.'))
+            print(crayons.red(f"No data for radar {RID} for {date}."))
 
         # Removing unzipped files, collecting memory garbage.
         remove(namelist)
