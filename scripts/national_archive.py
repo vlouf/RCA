@@ -32,6 +32,7 @@ import pandas as pd
 import dask.bag as db
 
 import cluttercal
+from cluttercal.cluttermask import EmptyFieldError
 
 
 def buffer(infile, cmask):
@@ -180,7 +181,7 @@ def savedata(df, date, path):
 
     outfilename = os.path.join(path, f'rca.{RID}.{datestr}.csv')
     df.to_csv(outfilename)
-    print(crayons.green(f'{len(df)} solar hits on {datestr}.'))
+    print(crayons.green(f'Found {len(df)} hits for {datestr}.'))
     print(crayons.green(f'Results saved in {outfilename}.'))
 
     return None
@@ -200,8 +201,6 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
 
     Returns:
     ========
-    file_prefix: str
-        Prefix given to filename.
     outpath: str
         Output directory for the clutter masks.
     '''    
@@ -216,14 +215,16 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
     if os.path.isfile(outputfile):
         print('Clutter masks already exists. Doing nothing.')
     else:
-        cmask = cluttercal.clutter_mask(radar_file_list,
-                                        refl_name="total_power",
-                                        refl_threshold=50,
-                                        max_range=20e3,
-                                        freq_threshold=50,
-                                        use_dask=True)
-        cmask.to_netcdf(outputfile)
-
+        try:
+            cmask = cluttercal.clutter_mask(radar_file_list,
+                                            refl_name="total_power",
+                                            refl_threshold=REFL_THLD,
+                                            max_range=20e3,
+                                            freq_threshold=50,
+                                            use_dask=True)
+            cmask.to_netcdf(outputfile)
+        except EmptyFieldError:
+            print(crayons.red(f'!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!'))
     return outpath
 
 
@@ -290,7 +291,7 @@ def main(date_range):
 
 
 if __name__ == "__main__":
-    parser_description = "Solar calibration of radar in the National radar archive."
+    parser_description = "Relative Calibration Adjustment (RCA) - Monitoring of clutter radar reflectivity."
     parser = argparse.ArgumentParser(description=parser_description)
     parser.add_argument(
         "-r",
@@ -327,6 +328,13 @@ if __name__ == "__main__":
         type=str,
         default='total_power',
         help="Radar uncorrected reflectivity name.")
+    parser.add_argument(
+        "-t",
+        "--threshold",
+        dest="refl_thld",
+        type=int,
+        default=45,
+        help="Reflectivity threshold for clutter in dBZ.")
 
     args = parser.parse_args()
     RID = f"{args.rid:02}"
@@ -334,6 +342,7 @@ if __name__ == "__main__":
     END_DATE = args.end_date
     OUTPATH = args.output
     REFL_NAME = args.refl_name
+    REFL_THLD = args.refl_thld
     ZIPDIR = '/scratch/kl02/vhl548/unzipdir/'
 
     if not check_rid():
