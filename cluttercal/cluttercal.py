@@ -16,30 +16,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-
-def _read_radar(infile, refl_name):
-    """
-    Read input radar file
-
-    Parameters:
-    ===========
-    radar_file_list: str
-        List of radar files.
-    refl_name: str
-        Uncorrected reflectivity field name.
-
-    Returns:
-    ========
-    radar: PyART.Radar
-        Radar data.
-    """
-    try:
-        radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
-    except KeyError:
-        gc.collect()  # Close file if stayed opened.
-        radar = pyart.io.read(infile, include_fields=[refl_name])
-
-    return radar
+from .cluttercal import _read_radar
 
 
 def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", freq_thrld=0.9):
