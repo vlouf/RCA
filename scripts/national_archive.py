@@ -341,7 +341,7 @@ if __name__ == "__main__":
 
     try:
         date_range = pd.date_range(START_DATE, END_DATE)
-        if len(date_range):
+        if len(date_range) == 0:
             parser.error('End date older than start date.')
     except Exception:
         parser.error('Invalid dates.')
