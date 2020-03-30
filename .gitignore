@@ -128,7 +128,7 @@ dmypy.json
 CPOL_rca_and_masks/
 
 *.pbs
-
+*.pbs.*
 # VSCode and notebooks
 .vscode
 .vscode/settings.json
