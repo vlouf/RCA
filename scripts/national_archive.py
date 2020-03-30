@@ -186,7 +186,7 @@ def savedata(df, date, path):
     return None
 
 
-def gen_cmask(radar_file_list, date):
+def gen_cmask(radar_file_list, date, file_prefix=None):
     '''
     Generate the clutter mask for a given day and save the clutter mask as a
     netCDF.
@@ -204,8 +204,9 @@ def gen_cmask(radar_file_list, date):
         Prefix given to filename.
     outpath: str
         Output directory for the clutter masks.
-    '''
-    file_prefix = f'{RID}_'
+    '''    
+    if file_prefix is None:
+        file_prefix = f'{RID}_'
     datestr = date.strftime('%Y%m%d')
 
     outpath = os.path.join(OUTPATH, 'cmasks', f'{RID}')
@@ -214,17 +215,16 @@ def gen_cmask(radar_file_list, date):
 
     if os.path.isfile(outputfile):
         print('Clutter masks already exists. Doing nothing.')
-        return file_prefix
+    else:
+        cmask = cluttercal.clutter_mask(radar_file_list,
+                                        refl_name="total_power",
+                                        refl_threshold=50,
+                                        max_range=20e3,
+                                        freq_threshold=50,
+                                        use_dask=True)
+        cmask.to_netcdf(outputfile)
 
-    cmask = cluttercal.clutter_mask(radar_file_list,
-                                    refl_name="total_power",
-                                    refl_threshold=50,
-                                    max_range=20e3,
-                                    freq_threshold=50,
-                                    use_dask=True)
-    cmask.to_netcdf(outputfile)
-
-    return file_prefix, outpath
+    return outpath
 
 
 def main(date_range):
@@ -250,7 +250,7 @@ def main(date_range):
             print(crayons.yellow(f'{len(namelist)} files to process for {date}.'))
 
             # Generate clutter mask for the given date.
-            prefix, outpath = gen_cmask(namelist, date)
+            outpath = gen_cmask(namelist, date, file_prefix=f'{RID}_')
 
             # Generate composite mask.
             try:
