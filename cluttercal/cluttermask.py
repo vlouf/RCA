@@ -43,13 +43,13 @@ def _read_radar(infile, refl_name):
         else:
             radar = pyart.io.read(infile, include_fields=[refl_name])
     except Exception:
-        print('!!!! Problem with {infile} !!!!')
+        print(f'!!!! Problem with {infile} !!!!')
         raise
 
     try:
         radar.fields[refl_name]
     except KeyError:        
-        print('!!!! Problem with {infile} - No {refl_name} field does not exist. !!!!')
+        print(f'!!!! Problem with {infile} - No {refl_name} field does not exist. !!!!')
         del radar
         raise 
 
@@ -89,7 +89,10 @@ def clutter_mask(
     """
 
     def find_clutter_pos(infile):
-        radar = _read_radar(infile, refl_name)
+        try:
+            radar = _read_radar(infile, refl_name)
+        except Exception:
+            return None
         sl = radar.get_slice(0)
         r = radar.range["data"]
         azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
@@ -111,6 +114,10 @@ def clutter_mask(
         rslt = bag.compute()
     else:
         rslt = [find_clutter_pos(d) for d in radar_file_list]
+
+    rslt = [r for r in rslt if r is not None]
+    if len(rslt) == 0:
+        raise EmptyFieldError("No Clutter detected")
 
     nr = 20
     na = 360

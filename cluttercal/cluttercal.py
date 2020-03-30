@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from .cluttercal import _read_radar
+from .cluttermask import _read_radar
 
 
 def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", freq_thrld=0.9):
