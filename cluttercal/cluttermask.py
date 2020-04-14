@@ -12,7 +12,6 @@ import dask
 import dask.bag as db
 
 import pyart
-import netCDF4
 import xarray as xr
 import numpy as np
 
