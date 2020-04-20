@@ -44,10 +44,7 @@ def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
         print("Could not read input file", os.path.basename(infile))
         return None
 
-    volume_date = cftime.num2date(radar.time['data'][0],
-                                  radar.time['units'],
-                                  only_use_cftime_datetimes=False,
-                                  only_use_python_datetimes=True)
+    volume_date = cftime.num2pydate(radar.time["data"][0], radar.time["units"])
 
     # Extract first elevation only
     rslice = radar.get_slice(0)
@@ -94,9 +91,7 @@ def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
 def _read_with_netcdf(infile, dbz_name, zdr_name, rhohv_name):
     with netCDF4.Dataset(infile, "r") as ncid:
         # Extract datetime
-        volume_date = cftime.num2date(ncid['time'][0], ncid['time'].units,
-                                      only_use_cftime_datetimes=False,
-                                      only_use_python_datetimes=True)
+        volume_date = cftime.num2pydate(ncid['time'][0], ncid['time'].units)
         # Get first sweep
         sweep = ncid["sweep_start_ray_index"][:]
         stsw = sweep[0]

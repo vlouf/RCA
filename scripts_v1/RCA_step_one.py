@@ -250,10 +250,7 @@ def main():
     azimuth = radar.azimuth['data'][radar.get_slice(0)]
     nbfile = len(flist)
 
-    date = cftime.num2date(radar.time["data"][0], 
-                           radar.time["units"],
-                           only_use_cftime_datetimes=False, 
-                           only_use_python_datetimes=True)        
+    date = cftime.num2pydate(radar.time["data"][0], radar.time["units"])
     datestr = date.strftime("%Y%m%d")
 
     # Create the name of output files (figure and mask).
