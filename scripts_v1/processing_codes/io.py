@@ -4,6 +4,7 @@ import traceback
 
 # Other libraries
 import pyart
+import cftime
 import netCDF4
 import numpy as np
 
@@ -43,7 +44,7 @@ def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
         print("Could not read input file", os.path.basename(infile))
         return None
 
-    volume_date = netCDF4.num2date(radar.time['data'][0], radar.time['units'])
+    volume_date = cftime.num2pydate(radar.time["data"][0], radar.time["units"])
 
     # Extract first elevation only
     rslice = radar.get_slice(0)
@@ -57,7 +58,7 @@ def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
         try:
             reflec = radar.fields[dname]['data'][rslice].filled(np.NaN)
             break
-        except KeyError:        
+        except KeyError:
             continue
 
     if reflec is None:
@@ -90,8 +91,7 @@ def _read_with_pyart(infile, dbz_name, zdr_name, rhohv_name):
 def _read_with_netcdf(infile, dbz_name, zdr_name, rhohv_name):
     with netCDF4.Dataset(infile, "r") as ncid:
         # Extract datetime
-        volume_date = netCDF4.num2date(ncid['time'][0], ncid['time'].units)
-
+        volume_date = cftime.num2pydate(ncid['time'][0], ncid['time'].units)
         # Get first sweep
         sweep = ncid["sweep_start_ray_index"][:]
         stsw = sweep[0]

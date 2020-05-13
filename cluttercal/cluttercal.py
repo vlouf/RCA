@@ -11,7 +11,7 @@ import gc
 import os
 
 import pyart
-import netCDF4
+import cftime
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -116,7 +116,7 @@ def extract_clutter(infile, clutter_mask, refl_name="total_power"):
     # Radar data.
     radar = _read_radar(infile, refl_name)
 
-    dtime = netCDF4.num2date(radar.time["data"][0], radar.time["units"])
+    dtime = cftime.num2pydate(radar.time["data"][0], radar.time["units"])
 
     sl = radar.get_slice(0)
     r = radar.range["data"]

@@ -33,6 +33,7 @@ matplotlib.use('Agg')  # <- Reason why matplotlib is imported first.
 import matplotlib.pyplot as pl
 import pyart
 import crayons
+import cftime
 import netCDF4
 import numpy as np
 
@@ -249,7 +250,7 @@ def main():
     azimuth = radar.azimuth['data'][radar.get_slice(0)]
     nbfile = len(flist)
 
-    date = netCDF4.num2date(radar.time['data'][0], radar.time['units'])
+    date = cftime.num2pydate(radar.time["data"][0], radar.time["units"])
     datestr = date.strftime("%Y%m%d")
 
     # Create the name of output files (figure and mask).
